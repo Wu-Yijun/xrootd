@@ -1,6 +1,7 @@
 #pragma once
 #include <napi.h>
 #include <XrdCl/XrdClXRootDResponses.hh>
+#include <XrdCl/XrdClPropertyList.hh>
 
 namespace XrdNode {
 namespace Utils {
