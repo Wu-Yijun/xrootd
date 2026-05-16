@@ -59,6 +59,7 @@ jobs:
         cmake .. \
           -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
           -DBUILD_SHARED_LIBS=OFF \
+          -DXRDCL_ONLY=ON \
           -DENABLE_SERVER=OFF \
           -DENABLE_PYTHON=OFF \
           -DCMAKE_CXX_STANDARD=17 \
