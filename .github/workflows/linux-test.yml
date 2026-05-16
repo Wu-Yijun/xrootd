@@ -86,7 +86,7 @@ jobs:
       # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
       run: |
         pnpm run build:addon
-        pnpm run pack --pack-destination ./dist
+        pnpm pack --pack-destination ./dist
 
     - name: Upload Node Addon Artifact
       uses: actions/upload-artifact@v6
