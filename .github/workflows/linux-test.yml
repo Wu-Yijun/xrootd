@@ -84,7 +84,14 @@ jobs:
 
     - name: Build Node Addon (node-gyp)
       # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
-      run: pnpm run build:addon
+      run: 
+        pnpm run build:addon
+        pnpm run pack --pack-destination ./dist
+
+    - name: Upload Node Addon Artifact
+      uses: actions/upload-artifact@v6
+      with:
+        path: dist
 
     # - name: Run Tests
     #   # 跑你的 Jest 测试用例
