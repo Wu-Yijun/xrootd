@@ -84,7 +84,7 @@ jobs:
 
     - name: Build Node Addon (node-gyp)
       # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
-      run: 
+      run: |
         pnpm run build:addon
         pnpm run pack --pack-destination ./dist
 
