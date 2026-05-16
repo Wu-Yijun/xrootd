@@ -16,44 +16,44 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v6
 
-    - name: Cache XRootD Build
-      id: cache-xrootd
-      uses: actions/cache@v5
-      with:
-        # 我们要缓存的目标目录
-        path: deps/xrootd
-        # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
-        # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
-        key: linux-xrootd-v6.0.1-static-v5
-
-    - name: Build XRootD Static Libraries
-      # 只有当没有命中缓存时，才执行耗时的克隆和编译
-      if: steps.cache-xrootd.outputs.cache-hit != 'true'
-      run: |
-        echo "Cache miss. Building XRootD from source..."
-        git clone --depth 1 --branch v6.0.1 https://github.com/xrootd/xrootd.git xrootd-src
-        mkdir xrootd-src/build && cd xrootd-src/build
-        
-        cmake .. \
-          -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DENABLE_SERVER=OFF \
-          -DENABLE_PYTHON=OFF \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-          
-        make -j$(nproc)
-        make install
-        # 编译完成后清理源码，节省缓存空间
-        cd ../..
-        rm -rf xrootd-src
-
-
-    # - name: Setup Node.js
-    #   uses: actions/setup-node@v6
+    # - name: Cache XRootD Build
+    #   id: cache-xrootd
+    #   uses: actions/cache@v5
     #   with:
-    #     node-version: '24'
-    #     cache: 'pnpm'
+    #     # 我们要缓存的目标目录
+    #     path: deps/xrootd
+    #     # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
+    #     # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
+    #     key: linux-xrootd-v6.0.1-static-v5
+
+    # - name: Build XRootD Static Libraries
+    #   # 只有当没有命中缓存时，才执行耗时的克隆和编译
+    #   if: steps.cache-xrootd.outputs.cache-hit != 'true'
+    #   run: |
+    #     echo "Cache miss. Building XRootD from source..."
+    #     git clone --depth 1 --branch v6.0.1 https://github.com/xrootd/xrootd.git xrootd-src
+    #     mkdir xrootd-src/build && cd xrootd-src/build
+        
+    #     cmake .. \
+    #       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+    #       -DBUILD_SHARED_LIBS=OFF \
+    #       -DENABLE_SERVER=OFF \
+    #       -DENABLE_PYTHON=OFF \
+    #       -DCMAKE_CXX_STANDARD=17 \
+    #       -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          
+    #     make -j$(nproc)
+    #     make install
+    #     # 编译完成后清理源码，节省缓存空间
+    #     cd ../..
+    #     rm -rf xrootd-src
+
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '24'
+        cache: 'pnpm'
 
     # - name: Install System Dependencies for XRootD
     #   # 安装 XRootD 编译所需的底层 C++ 依赖
