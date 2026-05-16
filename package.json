@@ -4,7 +4,7 @@
   "description": "Prebuilt Node.js Native Addon for XRootD",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "packageManager": "pnpm@11.1.2",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "build:ts": "tsc",
     "build:addon": "node-gyp rebuild",
