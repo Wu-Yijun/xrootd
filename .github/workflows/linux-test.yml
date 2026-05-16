@@ -1,0 +1,61 @@
+name: Linux Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # 允许在 GitHub 网页端手动触发
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '26'
+        cache: 'pnpm'
+
+    - name: Install System Dependencies for XRootD
+      # 安装 XRootD 编译所需的底层 C++ 依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+
+    - name: Build XRootD Static Libraries
+      # 从源码编译 XRootD，并指定安装到项目下的 deps/xrootd 目录
+      run: |
+        echo "Cloning XRootD source..."
+        git clone --depth 1 --branch v6.0.1 https://github.com/xrootd/xrootd.git xrootd-src
+        mkdir xrootd-src/build && cd xrootd-src/build
+        
+        echo "Configuring CMake for STATIC build..."
+        # 核心参数：关闭 Server 端、关闭 Python、关闭动态库，强制静态库
+        cmake .. \
+          -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+          -DENABLE_SERVER=OFF \
+          -DENABLE_PYTHON=OFF \
+          -DENABLE_SHARED=OFF \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          
+        echo "Building and Installing..."
+        make -j$(nproc)
+        make install
+
+    - name: Install NPM Dependencies & Build TypeScript
+      run: pnpm install
+
+    - name: Build Node Addon (node-gyp)
+      # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
+      run: pnpm run build:addon
+
+    # - name: Run Tests
+    #   # 跑你的 Jest 测试用例
+    #   run: pnpm test

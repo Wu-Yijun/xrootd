@@ -1,0 +1,101 @@
+name: Build and Release Prebuilds
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  prebuild:
+    name: Prebuild on ${{ matrix.os }}
+    # 使用构建矩阵同时在 Linux 和 macOS (Intel & M1/M2) 上运行
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-14]
+        # ubuntu-22.04 -> Linux x64
+        # macos-13     -> macOS x64 (Intel)
+        # macos-14     -> macOS arm64 (Apple Silicon)
+
+    steps: # TODO: adjust referring to linux-test.yml
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake openssl ossp-uuid pkg-config
+
+    - name: Build XRootD Static Libraries
+      run: |
+        git clone --depth 1 --branch v5.6.9 https://github.com/xrootd/xrootd.git xrootd-src
+        mkdir xrootd-src/build && cd xrootd-src/build
+        
+        cmake .. \
+          -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+          -DENABLE_SERVER=OFF \
+          -DENABLE_PYTHON=OFF \
+          -DENABLE_SHARED=OFF \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          
+        make -j4
+        make install
+
+    - name: Install NPM Dependencies
+      run: npm install
+
+    - name: Generate Prebuilds (prebuildify)
+      # 生成当前系统/架构的 .node 文件并放入 prebuilds/ 文件夹
+      run: npx prebuildify --napi --strip
+
+    - name: Upload Prebuild Artifacts
+      # 将生成的 prebuilds/ 目录上传到 GitHub Actions 的临时存储中
+      uses: actions/upload-artifact@v4
+      with:
+        name: prebuilds-${{ runner.os }}-${{ runner.arch }}
+        path: prebuilds/
+
+  # 当所有的 prebuild 任务完成后，将它们合并并推送到 npm (或者打包进 Release)
+  publish:
+    needs: prebuild
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org/'
+
+    - name: Download all Prebuild Artifacts
+      # 下载上面矩阵中生成的所有的预编译文件到本地的 prebuilds/ 目录
+      uses: actions/download-artifact@v4
+      with:
+        path: prebuilds
+        merge-multiple: true
+
+    - name: Build TypeScript
+      run: |
+        npm install
+        npm run build:ts
+
+    - name: Publish to NPM
+      # 发布包含 prebuilds/ 的 npm 包
+      # 注意：需要在 GitHub Secrets 中配置 NPM_TOKEN
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      run: npm publish --access public
