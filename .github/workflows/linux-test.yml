@@ -24,7 +24,7 @@ jobs:
         path: deps/xrootd
         # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
         # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
-        key: linux-xrootd-v6.0.1-static-v6
+        key: linux-xrootd-v6.0.1-static-v5
 
     - name: Install System Dependencies for XRootD
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
@@ -70,21 +70,21 @@ jobs:
         cd ../..
         rm -rf xrootd-src
 
-    # - uses: pnpm/action-setup@v5
-    # - name: Setup Node.js
-    #   uses: actions/setup-node@v6
-    #   with:
-    #     node-version: '26'
-    #     cache: 'pnpm'
+    - uses: pnpm/action-setup@v5
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '26'
+        cache: 'pnpm'
 
 
-    # - name: Install NPM Dependencies & Build TypeScript
-    #   run: pnpm install
+    - name: Install NPM Dependencies & Build TypeScript
+      run: pnpm install
 
-    # - name: Build Node Addon (node-gyp)
-    #   # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
-    #   run: pnpm run build:addon
+    - name: Build Node Addon (node-gyp)
+      # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
+      run: pnpm run build:addon
 
-    # # - name: Run Tests
-    # #   # 跑你的 Jest 测试用例
-    # #   run: pnpm test
+    # - name: Run Tests
+    #   # 跑你的 Jest 测试用例
+    #   run: pnpm test
