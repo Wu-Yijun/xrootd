@@ -16,7 +16,7 @@
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "<(module_root_dir)/deps/xrootd/include" # 假设你在 CI 中把头文件放在了这里
+        "<(module_root_dir)/deps/xrootd/include/xrootd",
       ],
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
