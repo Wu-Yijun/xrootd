@@ -19,7 +19,14 @@
         "<(module_root_dir)/deps/xrootd/include/xrootd",
       ],
       "cflags!": [ "-fno-exceptions" ],
-      "cflags_cc!": [ "-fno-exceptions" ],
+      "cflags_cc": [
+        "-std=c++17",
+        "-frtti"  # <--- 关键：强制开启 RTTI 选项
+      ],
+      "cflags_cc!": [ 
+        "-fno-exceptions",
+        "-fno-rtti"  # <--- 关键：从默认配置中强行移除“禁用RTTI”选项
+      ],
       "xcode_settings": {
         "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
         "CLANG_CXX_LIBRARY": "libc++"
@@ -32,11 +39,11 @@
             "<(module_root_dir)/deps/xrootd/lib/libxrootd-client.a",
             "<(module_root_dir)/deps/xrootd/lib/libXrdUtils.a",
             "<(module_root_dir)/deps/xrootd/lib/libXrdCl.a",
-            "<(module_root_dir)/deps/xrootd/lib/libXrdPosix.a",
-            "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
-            "<(module_root_dir)/deps/xrootd/lib/libXrdSec.a",
-            "<(module_root_dir)/deps/xrootd/lib/libXrdUtils.a",
-            "<(module_root_dir)/deps/xrootd/lib/libXrdSys.a",
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdPosix.a",
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdSec.a",
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdUtils.a",
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdSys.a",
             # 如果 XRootD 静态库内部依赖了其他系统库，你需要在这里显式链接
             "-lpthread",
             "-ldl",
