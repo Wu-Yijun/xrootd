@@ -1,0 +1,33 @@
+{
+  "name": "xrootd",
+  "version": "1.0.0",
+  "description": "Prebuilt Node.js Native Addon for XRootD",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "build:ts": "tsc",
+    "build:addon": "node-gyp rebuild",
+    "prebuild": "prebuildify --napi --strip",
+    "build": "npm run build:addon && npm run prebuild && npm run build:ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "node-addon-api": "^8.7.0",
+    "prebuildify": "^6.0.0",
+    "typescript": "^6.0.0"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "gypfile": false
+}
