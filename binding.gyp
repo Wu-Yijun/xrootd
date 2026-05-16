@@ -11,7 +11,7 @@
         "src/core/XrdNodeFileSystem.cpp",
         "src/core/XrdNodeUrl.cpp",
         "src/workers/CopyWorker.cpp"
-        "src/workers/FileSystemWorkers.cpp"
+        "src/workers/FileSystemWorkers.cpp",
         "src/workers/FileWorkers.cpp"
       ],
       "include_dirs": [
