@@ -6,7 +6,7 @@
 #include "core/XrdNodeFileSystem.h"
 #include "core/XrdNodeCopyProcess.h"
 #include "core/XrdNodeEnv.h"
-#include "core/XrdNodeUrl.h"
+// #include "core/XrdNodeUrl.h"
 
 // 模块初始化函数
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
@@ -14,7 +14,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     XrdNodeFile::Init(env, exports);
     XrdNodeFileSystem::Init(env, exports);
     XrdNodeCopyProcess::Init(env, exports);
-    XrdNodeUrl::Init(env, exports);
+    // XrdNodeUrl::Init(env, exports);
     
     // 环境变量直接作为静态方法挂载到 exports 上
     XrdNodeEnv::Init(env, exports);

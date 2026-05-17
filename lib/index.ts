@@ -4,7 +4,7 @@
 export { File } from './file';
 export { FileSystem } from './filesystem';
 // export { CopyProcess } from './copy-process';
-// export { URL } from './url';
+export { XRootDUrl as URL } from './url';
 // export { Env } from './env';
 
 // 2. 导出公共枚举和接口 (使用者在传参或处理返回数据时需要用到)

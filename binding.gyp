@@ -9,7 +9,7 @@
         "src/core/XrdNodeEnv.cpp",
         "src/core/XrdNodeFile.cpp",
         "src/core/XrdNodeFileSystem.cpp",
-        "src/core/XrdNodeUrl.cpp",
+        # "src/core/XrdNodeUrl.cpp",
         "src/workers/CopyWorker.cpp",
         "src/workers/FileSystemWorkers.cpp",
         "src/workers/FileWorkers.cpp"
