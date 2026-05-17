@@ -15,31 +15,19 @@ Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list
         return obj; // 传入空指针时返回空对象 {}
     }
 
-    // 注意：XrdCl::PropertyList 在不同版本的 XRootD 中 API 可能略有差异。
-    // 通常，它并不支持直接的基于范围的 for 循环 (range-based for)，
-    // 而是通过获取键名列表来遍历。
+    // XrdCl::PropertyList 内部维护的是 std::map<std::string, std::string>
+    // 并且对外暴露了 begin() 和 end()。
+    // 我们可以直接使用基于范围的 for 循环 (需解引用 list 指针) 或使用迭代器。
     
-    // 假设使用标准的 XRootD API (获取 Keys 并提取为 String)
-    std::vector<std::string> keys = list->GetKeys();
-    
-    for (const std::string& key : keys) {
-        std::string stringValue;
+    for (auto it = list->begin(); it != list->end(); ++it) {
+        // it->first 是 std::string 类型的 key
+        // it->second 是 std::string 类型的 value
+        const std::string& key = it->first;
+        const std::string& value = it->second;
         
-        // PropertyList 可能会存储不同类型的数据。
-        // 为了安全起见并配合 TS 层的 Record<string, any>，我们优先尝试提取为字符串。
-        // 在实际的物理数据处理中，XRootD 绝大部分的 property 都是以 string 形式传递的。
-        if (list->GetString(key, stringValue)) {
-            obj.Set(key, Napi::String::New(env, stringValue));
-        } else {
-            int intValue;
-            if (list->GetInt(key, intValue)) {
-                obj.Set(key, Napi::Number::New(env, intValue));
-            } else {
-                // 如果既不是字符串也不是整型，可以根据需要补充 GetBool 等，
-                // 或者降级写入一个空字符串/提示信息。
-                obj.Set(key, env.Null());
-            }
-        }
+        // 因为底层全都是以字符串形式存储的，直接转换为 Napi::String 即可。
+        // 这完美契合 Record<string, string> 的定义。
+        obj.Set(key, Napi::String::New(env, value));
     }
 
     return obj;
