@@ -13,7 +13,7 @@ export {
   OpenFlags,
   AccessMode,
   MkDirFlags,
-  XRootDError, // 之前讨论过的自定义错误类
+  XRootDError,
 } from './types';
 
 export type {
@@ -22,6 +22,6 @@ export type {
   StatVFSInfo,
   PropertyList,
   ReadChunkRequest,
-  // ReadStreamOptions, // TODO
-  // WriteStreamOptions // TODO
+  ReadStreamOptions,
+  WriteStreamOptions
 } from './types';

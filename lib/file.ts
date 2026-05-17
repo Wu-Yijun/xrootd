@@ -9,20 +9,9 @@ import {
   PropertyList,
   ReadChunkRequest,
   StatInfo,
+  ReadStreamOptions,
+  WriteStreamOptions
 } from "./types";
-
-export interface ReadStreamOptions {
-  start?: bigint;
-  end?: bigint;
-  /**
-   * 每次从底层读取的块大小 (默认 64KB)
-   */
-  highWaterMark?: number;
-}
-
-export interface WriteStreamOptions {
-  start?: bigint;
-}
 
 /**
  * XRootD File 客户端

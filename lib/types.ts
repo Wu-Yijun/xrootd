@@ -46,6 +46,17 @@ export interface StatVFSInfo { // TODO
   // ... 其他系统状态字段
 }
 
+
+export class XRootDError extends Error {
+  code: number;
+  status: number;
+  constructor(status: IXRootDStatus) {
+    super(status.message);
+    this.code = status.code;
+    this.status = status.status;
+  }
+}
+
 // ============================================================================
 // 2. 公共枚举与标志位 (Public Enums & Flags)
 // 注意：这些枚举的值必须与 C++ XrdCl::OpenFlags 等头文件中的常量严格保持一致！
@@ -194,4 +205,19 @@ export interface XrdNativeBindings {
     PutString(key: string, value: string): void;
     GetString(key: string): string | null;
   };
+}
+
+
+
+export interface ReadStreamOptions {
+  start?: bigint;
+  end?: bigint;
+  /**
+   * 每次从底层读取的块大小 (默认 64KB)
+   */
+  highWaterMark?: number;
+}
+
+export interface WriteStreamOptions {
+  start?: bigint;
 }
