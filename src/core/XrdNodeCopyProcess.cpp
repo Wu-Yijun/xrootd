@@ -1,7 +1,16 @@
 #include "XrdNodeCopyProcess.h"
 
 Napi::Object XrdNodeCopyProcess::Init(Napi::Env env, Napi::Object exports) {
-    // TODO
+    Napi::Function func = DefineClass(env, "CopyProcess", {
+        InstanceMethod("AddJob", &XrdNodeCopyProcess::AddJob),
+        InstanceMethod("Prepare", &XrdNodeCopyProcess::Prepare),
+        InstanceMethod("Run", &XrdNodeCopyProcess::Run),
+        InstanceMethod("CancelJob", &XrdNodeCopyProcess::CancelJob),
+        InstanceMethod("SetEventListener", &XrdNodeCopyProcess::SetEventListener)
+    });
+
+    exports.Set("CopyProcess", func);
+
     return exports;
 }
 

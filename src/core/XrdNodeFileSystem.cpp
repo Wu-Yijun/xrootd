@@ -1,7 +1,34 @@
 #include "XrdNodeFileSystem.h"
 
 Napi::Object XrdNodeFileSystem::Init(Napi::Env env, Napi::Object exports) {
-    // TODO
+    Napi::Function func = DefineClass(env, "FileSystem", {
+        InstanceMethod("Locate", &XrdNodeFileSystem::Locate),
+        InstanceMethod("DeepLocate", &XrdNodeFileSystem::DeepLocate),
+        InstanceMethod("Mv", &XrdNodeFileSystem::Mv),
+        InstanceMethod("Query", &XrdNodeFileSystem::Query),
+        InstanceMethod("Truncate", &XrdNodeFileSystem::Truncate),
+        InstanceMethod("Rm", &XrdNodeFileSystem::Rm),
+        InstanceMethod("MkDir", &XrdNodeFileSystem::MkDir),
+        InstanceMethod("RmDir", &XrdNodeFileSystem::RmDir),
+        InstanceMethod("ChMod", &XrdNodeFileSystem::ChMod),
+        InstanceMethod("Ping", &XrdNodeFileSystem::Ping),
+        InstanceMethod("Stat", &XrdNodeFileSystem::Stat),
+        InstanceMethod("StatVFS", &XrdNodeFileSystem::StatVFS),
+        InstanceMethod("Protocol", &XrdNodeFileSystem::Protocol),
+        InstanceMethod("DirList", &XrdNodeFileSystem::DirList),
+        InstanceMethod("SendInfo", &XrdNodeFileSystem::SendInfo),
+        InstanceMethod("Prepare", &XrdNodeFileSystem::Prepare),
+        InstanceMethod("Cat", &XrdNodeFileSystem::Cat),
+        InstanceMethod("GetProperty", &XrdNodeFileSystem::GetProperty),
+        InstanceMethod("SetProperty", &XrdNodeFileSystem::SetProperty),
+        InstanceMethod("SetXAttr", &XrdNodeFileSystem::SetXAttr),
+        InstanceMethod("GetXAttr", &XrdNodeFileSystem::GetXAttr),
+        InstanceMethod("DelXAttr", &XrdNodeFileSystem::DelXAttr),
+        InstanceMethod("ListXAttr", &XrdNodeFileSystem::ListXAttr)
+    });
+
+    exports.Set("FileSystem", func);
+
     return exports;
 }
 

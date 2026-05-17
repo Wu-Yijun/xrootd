@@ -1,7 +1,19 @@
 #include "XrdNodeUrl.h"
 
 Napi::Object XrdNodeUrl::Init(Napi::Env env, Napi::Object exports) {
-    // TODO
+    Napi::Function func = DefineClass(env, "Url", {
+        InstanceMethod("IsValid", &XrdNodeUrl::IsValid),
+        InstanceMethod("Clear", &XrdNodeUrl::Clear),
+        InstanceMethod("ToString", &XrdNodeUrl::ToString),
+        
+        // 使用 InstanceAccessor 绑定 Getters 和 Setters
+        InstanceAccessor("protocol", &XrdNodeUrl::GetProtocol, &XrdNodeUrl::SetProtocol),
+        InstanceAccessor("hostName", &XrdNodeUrl::GetHostName, &XrdNodeUrl::SetHostName),
+        InstanceAccessor("port", &XrdNodeUrl::GetPort, &XrdNodeUrl::SetPort),
+        // ... 其他属性
+    });
+
+    exports.Set("Url", func);
     return exports;
 }
 
