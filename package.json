@@ -7,7 +7,7 @@
   "packageManager": "pnpm@11.1.1",
   "files": [
     "dist",
-    "prebuild"
+    "prebuilds"
   ],
   "scripts": {
     "build:ts": "tsc",
