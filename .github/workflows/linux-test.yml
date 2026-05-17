@@ -86,7 +86,7 @@ jobs:
       # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
       continue-on-error: true # 即使编译失败也继续执行后续步骤，方便调试
       run: |
-        pnpm run build:addon
+        pnpm run build
         mkdir package
         pnpm pack --pack-destination ./package
 

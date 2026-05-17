@@ -8,5 +8,5 @@
 /deps/
 
 /.gitignore
-/build.gyp
+/binding.gyp
 /tsconfig.json
