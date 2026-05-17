@@ -94,11 +94,13 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         path: dist
+        name: dist-debug
 
     - name: Upload Package
       uses: actions/upload-artifact@v6
       with:
         path: package
+        name: node-addon-package
 
     # - name: Run Tests
     #   # 跑你的 Jest 测试用例
