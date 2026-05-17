@@ -1,7 +1,7 @@
 {
   "targets": [
     {
-      "target_name": "xrootd_bindings",
+      "target_name": "xrootd",
       "sources": [
         "src/addon.cpp",
         "src/utils/type_conversions.cpp",
