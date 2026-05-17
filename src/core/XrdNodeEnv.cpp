@@ -1,4 +1,5 @@
 #include "XrdNodeEnv.h"
+#include <XrdCl/XrdClDefaultEnv.hh>
 
 // 辅助宏：用于快速抛出类型错误，保持代码整洁
 #define THROW_TYPE_ERROR_RETURN_NULL(env, msg) \
