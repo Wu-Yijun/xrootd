@@ -35,15 +35,7 @@
         ["OS=='linux'", {
           "libraries": [
             # 绝对关键：使用绝对路径或相对路径强制链接静态库 .a
-            # 这样所有的 XRootD 逻辑都会被 "揉进" 最终的 .node 文件里
-            # "<(module_root_dir)/deps/xrootd/lib/libxrootd-client.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdUtils.a",
             "<(module_root_dir)/deps/xrootd/lib/libXrdCl.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdPosix.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdSec.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdUtils.a",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdSys.a",
             # 如果 XRootD 静态库内部依赖了其他系统库，你需要在这里显式链接
             "-lpthread",
             "-ldl",
