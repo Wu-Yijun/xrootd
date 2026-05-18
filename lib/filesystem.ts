@@ -6,7 +6,9 @@ import type {
   LocationInfo,
   StatInfo,
   PropertyList,
-  StatVFSInfo
+  StatVFSInfo,
+  DirListEntry,
+  XAttrStatusResult
 } from './types.ts';
 import {
   MkDirFlags,
@@ -68,8 +70,8 @@ export class FileSystem {
       ...rawStat,
       get modeOctal() { return reverseStr(rawStat.modeAsOctString); },
       get modeString() { return reverseStr(rawStat.modeAsString); },
-      get isFile() { return (rawStat.flags & StatFlags.IsDir) !== 0 },
-      get isDir() { return (rawStat.flags & StatFlags.XBitSet) !== 0 },
+      get isFile() { return (rawStat.flags & StatFlags.IsDir) === 0 && (rawStat.flags & StatFlags.Other) === 0 },
+      get isDir() { return (rawStat.flags & StatFlags.IsDir) !== 0 },
       get isOther() { return (rawStat.flags & StatFlags.Other) !== 0 },
       get isOffline() { return (rawStat.flags & StatFlags.Offline) !== 0 },
       get isPOSCPending() { return (rawStat.flags & StatFlags.POSCPending) !== 0 },
@@ -96,12 +98,10 @@ export class FileSystem {
   async mkdir(
     dirPath: string,
     flags: MkDirFlags = MkDirFlags.None,
-    mode: AccessMode = AccessMode.UR | AccessMode.UW | AccessMode.UX
+    mode: AccessMode = AccessMode.UR | AccessMode.UW | AccessMode.UX | AccessMode.GR | AccessMode.GX | AccessMode.OR | AccessMode.OX
   ): Promise<void> {
-    // 底层 C++ 通常是将 flags 和 mode 压缩或分离传递，这里假设底层接受合并的 mode/flags
-    // 实际需与 C++ XrdCl::FileSystem::MkDir 的参数对齐，这里传入 mode
-    // 如果 C++ 侧需要 flag，可以在 types.ts 中调整 INativeFileSystem 签名
-    return this._internal.MkDir(this._normalize(dirPath), flags | mode);
+    // 对应底层 C++ XrdCl::FileSystem::MkDir，接受 path, flags, mode
+    return this._internal.MkDir(this._normalize(dirPath), flags, mode);
   }
 
   /**
@@ -122,20 +122,11 @@ export class FileSystem {
   }
 
   /**
-   * 一次性读取整个文件到内存 (适用于读取远端的小型配置文件)
-   * 警告: 对于动辄 GB 级别的 ROOT 文件，请使用 File.createReadStream
-   * @param filePath 文件路径
-   */
-  async cat(filePath: string): Promise<Buffer> {
-    return this._internal.Cat(this._normalize(filePath));
-  }
-
-  /**
    * 列出目录下的所有文件和子目录名
    * @param dirPath 目录路径
    * @param flags 标志位 (例如是否显示隐藏文件)
    */
-  async dirList(dirPath: string, flags: number = 0): Promise<string[]> {
+  async dirList(dirPath: string, flags: number = 0): Promise<DirListEntry[]> {
     return this._internal.DirList(this._normalize(dirPath), flags);
   }
 
@@ -191,7 +182,7 @@ export class FileSystem {
    * 在不打开文件的情况下，直接截断目标文件
    */
   async truncate(filePath: string, size: bigint | number): Promise<void> {
-    return this._internal.Truncate(this._normalize(filePath), BigInt(size));
+    return this._internal.Truncate(this._normalize(filePath), size);
   }
 
   /**
@@ -225,15 +216,22 @@ export class FileSystem {
   /**
    * 发送带外查询指令到数据节点 (通常用于 XRootD 的高级自定义插件)
    */
-  async query(queryCode: number, args: string): Promise<string> {
+  async query(queryCode: number, args: Buffer): Promise<Buffer> {
     return this._internal.Query(queryCode, args);
   }
 
   /**
    * 发送通用信息到服务器
    */
-  async sendInfo(info: string): Promise<void> {
+  async sendInfo(info: string): Promise<Buffer> {
     return this._internal.SendInfo(info);
+  }
+
+  /**
+   * 发送缓存操作信息给集群
+   */
+  async sendCache(info: string): Promise<Buffer> {
+    return this._internal.SendCache(info);
   }
 
   /**
@@ -241,38 +239,63 @@ export class FileSystem {
    * 在处理海量物理数据时，通知存储集群将特定的冷数据（如磁带上的文件）提前拉取到磁盘缓存。
    * @param targetPaths 需要预热的路径数组
    * @param flags 预热策略标志
+   * @param priority 优先级
    */
-  async prepare(targetPaths: string[], flags: number = 0): Promise<PropertyList> {
+  async prepare(targetPaths: string[], flags: number = 0, priority: number = 0): Promise<Buffer> {
     // 对所有的请求路径进行安全清理
     const normalizedPaths = targetPaths.map(p => this._normalize(p));
-    return this._internal.Prepare(normalizedPaths, flags);
+    return this._internal.Prepare(normalizedPaths, flags, priority);
   }
 
   // ==========================================================================
   // 属性与扩展属性 (XAttr) (补全接口)
   // ==========================================================================
 
-  async getProperty(name: string): Promise<string> {
+  /**
+   * 获取文件系统属性
+   */
+  getProperty(name: string): { success: boolean; value: string } {
     return this._internal.GetProperty(name);
   }
 
-  async setProperty(name: string, value: string): Promise<void> {
+  /**
+   * 设置文件系统属性
+   */
+  setProperty(name: string, value: string): boolean {
     return this._internal.SetProperty(name, value);
   }
 
-  async setXAttr(targetPath: string, name: string, value: string): Promise<void> {
-    return this._internal.SetXAttr(this._normalize(targetPath), name, value);
+  /**
+   * 设置扩展属性
+   * @param targetPath 目标路径
+   * @param attrs 扩展属性键值对记录
+   */
+  async setXAttr(targetPath: string, attrs: Record<string, string>): Promise<XAttrStatusResult[]> {
+    return this._internal.SetXAttr(this._normalize(targetPath), attrs);
   }
 
-  async getXAttr(targetPath: string, name: string): Promise<string> {
-    return this._internal.GetXAttr(this._normalize(targetPath), name);
+  /**
+   * 获取扩展属性
+   * @param targetPath 目标路径
+   * @param keys 需要获取的属性名数组
+   */
+  async getXAttr(targetPath: string, keys: string[]): Promise<Record<string, string>> {
+    return this._internal.GetXAttr(this._normalize(targetPath), keys);
   }
 
-  async delXAttr(targetPath: string, name: string): Promise<void> {
-    return this._internal.DelXAttr(this._normalize(targetPath), name);
+  /**
+   * 删除指定的扩展属性
+   * @param targetPath 目标路径
+   * @param keys 需要删除的属性名数组
+   */
+  async delXAttr(targetPath: string, keys: string[]): Promise<XAttrStatusResult[]> {
+    return this._internal.DelXAttr(this._normalize(targetPath), keys);
   }
 
-  async listXAttr(targetPath: string): Promise<string[]> {
+  /**
+   * 列出目标文件或目录的所有扩展属性
+   */
+  async listXAttr(targetPath: string): Promise<Record<string, string>> {
     return this._internal.ListXAttr(this._normalize(targetPath));
   }
 
