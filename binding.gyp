@@ -9,9 +9,9 @@
         "src/core/XrdNodeEnv.cpp",
         "src/core/XrdNodeFile.cpp",
         "src/core/XrdNodeFileSystem.cpp",
-        "src/workers/CopyWorker.cpp",
-        "src/workers/FileSystemWorkers.cpp",
-        "src/workers/FileWorkers.cpp"
+        # "src/workers/CopyWorker.cpp",
+        # "src/workers/FileSystemWorkers.cpp",
+        # "src/workers/FileWorkers.cpp"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",

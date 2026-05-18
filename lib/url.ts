@@ -1,5 +1,5 @@
 // lib/url.ts
-import { URL as NodeURL } from 'url';
+import { URL as NodeURL } from 'node:url';
 
 /**
  * 纯 TypeScript 实现的 XRootD URL 解析器

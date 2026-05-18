@@ -9,12 +9,11 @@ export { Env } from './env.ts';
 
 // 2. 导出公共枚举和接口 (使用者在传参或处理返回数据时需要用到)
 // 注意：不要使用 export *，以防止把内部的 INativeFile 等接口泄露出去
-export type {
+export {
   OpenFlags,
   AccessMode,
   MkDirFlags,
-  XRootDError,
-} from './types.ts';
+} from './enums.ts';
 
 export type {
   StatInfo,
@@ -23,5 +22,6 @@ export type {
   PropertyList,
   ReadChunkRequest,
   ReadStreamOptions,
-  WriteStreamOptions
+  WriteStreamOptions,
+  XRootDError,
 } from './types.ts';

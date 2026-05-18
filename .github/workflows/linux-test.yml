@@ -37,7 +37,7 @@ jobs:
       # 安装 XRootD 编译所需的底层 C++ 依赖
       run: |
         apt-get update
-        apt-get install -y cmake g++ make patchelf
+        apt-get install -y cmake g++ make
 
     - name: Build XRootD Static Libraries
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
@@ -106,7 +106,7 @@ jobs:
         # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
         # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
 
-        # sudo apt-get install -y patchelf
+        apt-get install -y patchelf
         # 让该目录下所有的 .so 运行时都能在同级目录下找到彼此
         # 这条命令是 O(n) 的，无论增加多少个库，都只需要这一行！
         for f in libs/linux-x64/*.so*; do

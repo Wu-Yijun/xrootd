@@ -8,5 +8,6 @@
 /prebuilds/
 /xrootd-src/
 
+/.clang-format
 /.clangd
 /test_sub.sh

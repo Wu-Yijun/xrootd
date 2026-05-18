@@ -1,6 +1,6 @@
 // lib/file.ts
 
-import { Readable, Writable } from "stream";
+import { Readable, Writable } from "node:stream";
 import nativeAddon from "./native.ts";
 import type {
   INativeFile,
@@ -13,7 +13,7 @@ import type {
 import {
   OpenFlags,
   AccessMode,
-} from './types.ts';
+} from './enums.ts';
 
 /**
  * XRootD File 客户端

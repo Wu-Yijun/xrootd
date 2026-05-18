@@ -12,7 +12,7 @@ import {
   MkDirFlags,
   AccessMode,
   StatFlags,
-} from './types.ts';
+} from './enums.ts';
 import { reverseStr } from './utils.ts';
 
 /**

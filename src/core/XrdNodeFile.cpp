@@ -1,42 +1,43 @@
 #include "XrdNodeFile.h"
 
-#include "handlers/FileControlHandler.h"
-#include "handlers/FileReadHandler.h"
-#include "handlers/FileWriteHandler.h"
+#include "handlers/FileControlHandler.hpp"
+#include "handlers/FileReadHandler.hpp"
+#include "handlers/FileWriteHandler.hpp"
 
-
-using XrdNode::FileReadHandler, XrdNode::FileWriteHandler,
-    XrdNode::FileControlHandler;
+using XrdNode::FileReadHandler, XrdNode::FileWriteHandler, XrdNode::FileControlHandler;
 
 Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
   // 1. 定义 JS 类的名称和它原型链上的所有方法
-  Napi::Function func =
-      DefineClass(env, "File",
-                  {// InstanceMethod 会把 C++ 方法挂载到 JS 的 prototype 上
-                   InstanceMethod("Open", &XrdNodeFile::Open),
-                   InstanceMethod("Close", &XrdNodeFile::Close),
-                   InstanceMethod("Stat", &XrdNodeFile::Stat),
-                   InstanceMethod("Read", &XrdNodeFile::Read),
-                   InstanceMethod("Write", &XrdNodeFile::Write),
-                   InstanceMethod("Sync", &XrdNodeFile::Sync),
-                   InstanceMethod("Truncate", &XrdNodeFile::Truncate),
+  Napi::Function func = DefineClass(
+      env,
+      "File",
+      {// InstanceMethod 会把 C++ 方法挂载到 JS 的 prototype 上
+       InstanceMethod("Open", &XrdNodeFile::Open),
+       InstanceMethod("Close", &XrdNodeFile::Close),
+       InstanceMethod("Stat", &XrdNodeFile::Stat),
+       InstanceMethod("Read", &XrdNodeFile::Read),
+       InstanceMethod("Write", &XrdNodeFile::Write),
+       InstanceMethod("Sync", &XrdNodeFile::Sync),
+       InstanceMethod("Truncate", &XrdNodeFile::Truncate),
 
-                   // 向量读取
-                   InstanceMethod("VectorRead", &XrdNodeFile::VectorRead),
-                   InstanceMethod("ReadChunks", &XrdNodeFile::ReadChunks),
+       // 向量读取
+       InstanceMethod("VectorRead", &XrdNodeFile::VectorRead),
+       InstanceMethod("ReadChunks", &XrdNodeFile::ReadChunks),
 
-                   // 同步方法
-                   InstanceMethod("IsOpen", &XrdNodeFile::IsOpen),
+       // 同步方法
+       InstanceMethod("IsOpen", &XrdNodeFile::IsOpen),
 
-                   // 扩展属性
-                   InstanceMethod("GetProperty", &XrdNodeFile::GetProperty),
-                   InstanceMethod("SetProperty", &XrdNodeFile::SetProperty),
-                   InstanceMethod("SetXAttr", &XrdNodeFile::SetXAttr),
-                   InstanceMethod("GetXAttr", &XrdNodeFile::GetXAttr),
-                   InstanceMethod("DelXAttr", &XrdNodeFile::DelXAttr),
-                   InstanceMethod("ListXAttr", &XrdNodeFile::ListXAttr),
+       // 扩展属性
+       InstanceMethod("GetProperty", &XrdNodeFile::GetProperty),
+       InstanceMethod("SetProperty", &XrdNodeFile::SetProperty),
+       InstanceMethod("SetXAttr", &XrdNodeFile::SetXAttr),
+       InstanceMethod("GetXAttr", &XrdNodeFile::GetXAttr),
+       InstanceMethod("DelXAttr", &XrdNodeFile::DelXAttr),
+       InstanceMethod("ListXAttr", &XrdNodeFile::ListXAttr),
 
-                   InstanceMethod("Clone", &XrdNodeFile::Clone)});
+       InstanceMethod("Clone", &XrdNodeFile::Clone)
+      }
+  );
 
   // (可选) 如果你需要在 C++ 内部 (比如在 Clone 方法中) 实例化这个 JS 对象，
   // 你需要把这个 func (构造函数) 保存到一个静态的 Napi::FunctionReference 中。
@@ -51,9 +52,7 @@ Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
 }
 
 // 必须显式调用父类 Napi::ObjectWrap 的构造函数
-XrdNodeFile::XrdNodeFile(const Napi::CallbackInfo &info)
-    : Napi::ObjectWrap<XrdNodeFile>(info) {
-
+XrdNodeFile::XrdNodeFile(const Napi::CallbackInfo &info) : Napi::ObjectWrap<XrdNodeFile>(info) {
   Napi::Env env = info.Env();
 
   // 检查：是否是从 C++ 内部 (如 Clone 方法) 传进来的已有指针？
@@ -87,28 +86,39 @@ Napi::Value XrdNodeFile::IsOpen(const Napi::CallbackInfo &info) {
 // ============================================================================
 Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+
+  // 1. 状态防火墙：防止重复打开和未 await close 的情况
+  if (this->file_->IsOpen()) {
+    Napi::Error err =
+        Napi::Error::New(env, "File is already open. You must await close() before reopening.");
+    deferred.Reject(err.Value());
+    return deferred.Promise();
+  }
 
   // 参数提取与校验
-  if (info.Length() < 3 || !info[0].IsString() || !info[1].IsNumber() ||
-      !info[2].IsNumber()) {
-    Napi::TypeError::New(env, "Invalid arguments for Open")
-        .ThrowAsJavaScriptException();
-    return env.Null();
+  if (info.Length() < 3 || !info[0].IsString() || !info[1].IsNumber() || !info[2].IsNumber()) {
+    Napi::Error err = Napi::TypeError::New(
+        env, "Invalid arguments for Open: path, flags, and mode are required."
+    );
+    deferred.Reject(err.Value());
+    return deferred.Promise();  // 安全返回 rejected promise
   }
 
   std::string url = info[0].As<Napi::String>().Utf8Value();
   uint32_t flags = info[1].As<Napi::Number>().Uint32Value();
   uint32_t mode = info[2].As<Napi::Number>().Uint32Value();
 
-  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-
   // 实例化复用的控制 Handler
   auto *handler = new FileControlHandler(env, deferred, "Open");
 
   // 调用 XRootD 异步 Open，瞬间返回
-  XrdCl::XRootDStatus status =
-      this->file_->Open(url, static_cast<XrdCl::OpenFlags::Flags>(flags),
-                        static_cast<XrdCl::Access::Mode>(mode), handler);
+  XrdCl::XRootDStatus status = this->file_->Open(
+      url,
+      static_cast<XrdCl::OpenFlags::Flags>(flags),
+      static_cast<XrdCl::Access::Mode>(mode),
+      handler
+  );
 
   if (!status.IsOK()) {
     // 如果发起异步请求本身就失败了（例如本地状态错误），立即销毁 handler 并
@@ -145,8 +155,7 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
   if (info.Length() < 1 || !info[0].IsArray()) {
-    Napi::TypeError::New(env, "Clone expects an array of locations")
-        .ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Clone expects an array of locations").ThrowAsJavaScriptException();
     return env.Null();
   }
 
@@ -157,16 +166,14 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
   // 遍历 JS 传进来的克隆任务配置数组
   for (uint32_t i = 0; i < arr.Length(); i++) {
     Napi::Value itemValue = arr.Get(i);
-    if (!itemValue.IsObject())
-      continue;
+    if (!itemValue.IsObject()) continue;
 
     Napi::Object item = itemValue.As<Napi::Object>();
     Napi::Object srcFileObj = item.Get("srcFile").As<Napi::Object>();
 
     // 核心安全技巧：从传入的 JS File 对象中，反解出它对应的 C++ 包装类实例
     // 从而直接拿到它内部持有的原生 XrdCl::File* 指针
-    XrdNodeFile *srcNodeFile =
-        Napi::ObjectWrap<XrdNodeFile>::Unwrap(srcFileObj);
+    XrdNodeFile *srcNodeFile = Napi::ObjectWrap<XrdNodeFile>::Unwrap(srcFileObj);
     if (!srcNodeFile || !srcNodeFile->GetInternalFile()) {
       Napi::TypeError::New(env, "Invalid source file object in clone locations")
           .ThrowAsJavaScriptException();
@@ -174,16 +181,12 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
     }
 
     // 提取大整数偏移量，严格校验精度
-    int64_t dstOffs =
-        item.Get("dstOffset").As<Napi::BigInt>().Int64Value(&lossless);
-    int64_t srcOffs =
-        item.Get("srcOffset").As<Napi::BigInt>().Int64Value(&lossless);
-    int64_t srcLen =
-        item.Get("length").As<Napi::BigInt>().Int64Value(&lossless);
+    int64_t dstOffs = item.Get("dstOffset").As<Napi::BigInt>().Int64Value(&lossless);
+    int64_t srcOffs = item.Get("srcOffset").As<Napi::BigInt>().Int64Value(&lossless);
+    int64_t srcLen = item.Get("length").As<Napi::BigInt>().Int64Value(&lossless);
 
     if (!lossless) {
-      Napi::RangeError::New(
-          env, "Clone offset or length exceeds 64-bit integer limits")
+      Napi::RangeError::New(env, "Clone offset or length exceeds 64-bit integer limits")
           .ThrowAsJavaScriptException();
       return env.Null();
     }
@@ -229,7 +232,11 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo &info) {
   auto *handler = new FileReadHandler(env, deferred, size);
 
   // 瞬间异步调用，将 C++ 分配的 buffer_ 指针传进去
-  this->file_->Read(offset, size, handler->GetBuffer(), handler);
+  auto status = this->file_->Read(offset, size, handler->GetBuffer(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+  }
 
   return deferred.Promise();
 }
@@ -254,7 +261,11 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo &info) {
   auto *handler = new FileWriteHandler(env, deferred, jsBuffer);
 
   // 瞬间异步调用，直接传入 JS Buffer 的底层指针和长度
-  this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
+  auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+  }
 
   return deferred.Promise();
 }
