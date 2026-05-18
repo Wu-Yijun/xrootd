@@ -9,3 +9,4 @@
 /xrootd-src/
 
 /.clangd
+/test_sub.sh

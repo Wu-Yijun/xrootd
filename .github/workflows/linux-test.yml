@@ -10,7 +10,8 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
+    # runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
+    runs-on: ubuntu-20.04 # 尽量保证 gcc 兼容性
     
     steps:
     - name: Checkout Repository
@@ -24,15 +25,16 @@ jobs:
         path: deps/xrootd
         # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
         # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
-        key: linux-xrootd-v6.0.1-dynamic-b1
+        # key: linux-xrootd-v6.0.1-dynamic-b1 # ubuntu-22
+        key: linux20-xrootd-v6.0.1-dynamic-b1 # ubuntu-20
 
-    - name: Install System Dependencies for XRootD
-      # 只有当没有命中缓存时，才执行耗时的克隆和编译
-      if: steps.cache-xrootd.outputs.cache-hit != 'true'
-      # 安装 XRootD 编译所需的底层 C++ 依赖
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+    # - name: Install System Dependencies for XRootD
+    #   # 只有当没有命中缓存时，才执行耗时的克隆和编译
+    #   if: steps.cache-xrootd.outputs.cache-hit != 'true'
+    #   # 安装 XRootD 编译所需的底层 C++ 依赖
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
 
     - name: Build XRootD Static Libraries
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
@@ -83,7 +85,7 @@ jobs:
         cp deps/xrootd/lib/libXrdSecProt-6.so    libs/linux-x64/
         cp deps/xrootd/lib/libXrdCrypto.so.6.0.1 libs/linux-x64/libXrdCrypto.so.6
         cp deps/xrootd/lib/libXrdCryptossl-6.so  libs/linux-x64/libXrdCryptossl-6.so
-        3. 核心认证插件 (Auth Plugins)
+        # 3. 核心认证插件 (Auth Plugins)
         cp deps/xrootd/lib/libXrdSeckrb5-6.so    libs/linux-x64/
         cp deps/xrootd/lib/libXrdSecunix-6.so  libs/linux-x64/
         cp deps/xrootd/lib/libXrdSecsss-6.so    libs/linux-x64/
