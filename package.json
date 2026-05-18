@@ -1,14 +1,16 @@
 {
   "name": "xrootd",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Prebuilt Node.js Native Addon for XRootD",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "packageManager": "pnpm@11.1.2",
   "files": [
+    "libs",
+    "prebuilds",
     "dist",
-    "prebuilds"
+    "package.json"
   ],
   "scripts": {
     "build:ts": "tsdown lib/index.ts",
