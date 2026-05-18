@@ -19,10 +19,10 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
     // 它的作用是允许 XRootD 的后台线程安全地呼叫 V8 主线程
     tsfn_ = Napi::ThreadSafeFunction::New(
         env,
-        Napi::Function::New(env, [](const Napi::CallbackInfo &) {}),  // Dummy JS 函数
-        "XRootD_AsyncStat",                                           // 名称
-        0,  // 最大队列大小 (0 表示无限制)
-        1   // 初始线程数计数
+        Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),  // Dummy JS 函数
+        "XRootD_AsyncStat",                                          // 名称
+        0,                                                           // 最大队列大小 (0 表示无限制)
+        1                                                            // 初始线程数计数
     );
   }
 
@@ -30,11 +30,11 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
   virtual ~AsyncStatHandler() { tsfn_.Release(); }
 
   // 4. XRootD 网络响应到达时触发 (运行在 XRootD 后台线程！)
-  virtual void HandleResponse(XrdCl::XRootDStatus *status, XrdCl::AnyObject *response) override {
+  virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
     // 警告：这里绝对不能碰任何 Napi::Value，因为这是后台线程！
 
     // 解析数据并存入局部结构
-    XrdCl::StatInfo *statInfo = nullptr;
+    XrdCl::StatInfo* statInfo = nullptr;
     if (status->IsOK()) {
       response->Get(statInfo);
     }

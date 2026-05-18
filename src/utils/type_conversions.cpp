@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-
 namespace XrdNode {
 namespace Utils {
 
@@ -35,20 +34,20 @@ Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list
   return obj;
 }
 
-// ============================================================================
-// 2. AnyObject 转换
-// 目标: 将 XRootD 的 AnyObject 转换为 Napi::Value
-// ============================================================================
-Napi::Value AnyObjectToValue(Napi::Env env, const XrdCl::AnyObject* obj) {
-  // 深度分析：
-  // 在 Python 的实现中 (template<> struct PyDict<XrdCl::AnyObject>)，
-  // AnyObject 被强行映射为了 Python 的 None。
-  // 原因是 XrdCl::AnyObject 通常被用作 C++ 底层的不透明指针 (Opaque Pointer)、
-  // 闭包上下文 (Closure Context) 或非常底层的内存结构。
-  // 将其强行序列化到 JS 层既不安全也没有实际意义，因此我们直接返回 null。
+// // ============================================================================
+// // 2. AnyObject 转换
+// // 目标: 将 XRootD 的 AnyObject 转换为 Napi::Value
+// // ============================================================================
+// Napi::Value AnyObjectToValue(Napi::Env env, const XrdCl::AnyObject* obj) {
+//   // 深度分析：
+//   // 在 Python 的实现中 (template<> struct PyDict<XrdCl::AnyObject>)，
+//   // AnyObject 被强行映射为了 Python 的 None。
+//   // 原因是 XrdCl::AnyObject 通常被用作 C++ 底层的不透明指针 (Opaque Pointer)、
+//   // 闭包上下文 (Closure Context) 或非常底层的内存结构。
+//   // 将其强行序列化到 JS 层既不安全也没有实际意义，因此我们直接返回 null。
 
-  return env.Null();
-}
+//   return env.Null();
+// }
 
 // ============================================================================
 // 3. Status 转换
