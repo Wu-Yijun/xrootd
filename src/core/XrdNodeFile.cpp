@@ -52,7 +52,7 @@ Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
 }
 
 // 必须显式调用父类 Napi::ObjectWrap 的构造函数
-XrdNodeFile::XrdNodeFile(const Napi::CallbackInfo &info) : Napi::ObjectWrap<XrdNodeFile>(info) {
+XrdNodeFile::XrdNodeFile(const Napi::CallbackInfo& info) : Napi::ObjectWrap<XrdNodeFile>(info) {
   Napi::Env env = info.Env();
 
   // 检查：是否是从 C++ 内部 (如 Clone 方法) 传进来的已有指针？
@@ -76,7 +76,7 @@ XrdNodeFile::~XrdNodeFile() {
   }
 }
 
-Napi::Value XrdNodeFile::IsOpen(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::IsOpen(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
@@ -84,7 +84,7 @@ Napi::Value XrdNodeFile::IsOpen(const Napi::CallbackInfo &info) {
 // ============================================================================
 // 1. Open 接口实现
 // ============================================================================
-Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
 
@@ -110,7 +110,7 @@ Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo &info) {
   uint32_t mode = info[2].As<Napi::Number>().Uint32Value();
 
   // 实例化复用的控制 Handler
-  auto *handler = new FileControlHandler(env, deferred, "Open");
+  auto* handler = new FileControlHandler(env, deferred, "Open");
 
   // 调用 XRootD 异步 Open，瞬间返回
   XrdCl::XRootDStatus status = this->file_->Open(
@@ -132,11 +132,11 @@ Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo &info) {
 // ============================================================================
 // 2. Close 接口实现
 // ============================================================================
-Napi::Value XrdNodeFile::Close(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Close(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
 
-  auto *handler = new FileControlHandler(env, deferred, "Close");
+  auto* handler = new FileControlHandler(env, deferred, "Close");
 
   // 调用 XRootD 异步 Close
   XrdCl::XRootDStatus status = this->file_->Close(handler);
@@ -151,7 +151,7 @@ Napi::Value XrdNodeFile::Close(const Napi::CallbackInfo &info) {
 // ============================================================================
 // 3. Clone 接口实现（核心：解包 JS 数组并提取跨实例的底层指针）
 // ============================================================================
-Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
 
   if (info.Length() < 1 || !info[0].IsArray()) {
@@ -173,7 +173,7 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
 
     // 核心安全技巧：从传入的 JS File 对象中，反解出它对应的 C++ 包装类实例
     // 从而直接拿到它内部持有的原生 XrdCl::File* 指针
-    XrdNodeFile *srcNodeFile = Napi::ObjectWrap<XrdNodeFile>::Unwrap(srcFileObj);
+    XrdNodeFile* srcNodeFile = Napi::ObjectWrap<XrdNodeFile>::Unwrap(srcFileObj);
     if (!srcNodeFile || !srcNodeFile->GetInternalFile()) {
       Napi::TypeError::New(env, "Invalid source file object in clone locations")
           .ThrowAsJavaScriptException();
@@ -196,7 +196,7 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
   }
 
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-  auto *handler = new FileControlHandler(env, deferred, "Clone");
+  auto* handler = new FileControlHandler(env, deferred, "Clone");
 
   // 发起服务端的异步克隆请求
   XrdCl::XRootDStatus status = this->file_->Clone(locs, handler);
@@ -208,12 +208,12 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo &info) {
   return deferred.Promise();
 }
 
-Napi::Value XrdNodeFile::Stat(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Stat(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
 
   // 从 TS 获取参数: read(offset: bigint | number, size: number)
@@ -229,7 +229,7 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo &info) {
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
 
   // 实例化 Handler
-  auto *handler = new FileReadHandler(env, deferred, size);
+  auto* handler = new FileReadHandler(env, deferred, size);
 
   // 瞬间异步调用，将 C++ 分配的 buffer_ 指针传进去
   auto status = this->file_->Read(offset, size, handler->GetBuffer(), handler);
@@ -241,7 +241,7 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo &info) {
   return deferred.Promise();
 }
 
-Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
 
   // 1. 提前声明一个布尔变量
@@ -258,7 +258,7 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo &info) {
 
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
 
-  auto *handler = new FileWriteHandler(env, deferred, jsBuffer);
+  auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
 
   // 瞬间异步调用，直接传入 JS Buffer 的底层指针和长度
   auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
@@ -270,52 +270,52 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo &info) {
   return deferred.Promise();
 }
 
-Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::Truncate(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::Truncate(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::VectorRead(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::VectorRead(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::ReadChunks(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::ReadChunks(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::GetProperty(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::GetProperty(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::SetProperty(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::SetProperty(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::GetXAttr(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::GetXAttr(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::DelXAttr(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::DelXAttr(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }
 
-Napi::Value XrdNodeFile::ListXAttr(const Napi::CallbackInfo &info) {
+Napi::Value XrdNodeFile::ListXAttr(const Napi::CallbackInfo& info) {
   // TODO
   return Napi::Value();
 }

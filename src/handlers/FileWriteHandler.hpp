@@ -17,13 +17,13 @@ class FileWriteHandler : public XrdCl::ResponseHandler {
     bufferRef_ = Napi::Persistent(jsBuffer.As<Napi::Object>());
 
     tsfn_ = Napi::ThreadSafeFunction::New(
-        env, Napi::Function::New(env, [](const Napi::CallbackInfo &) {}), "XRootD_FileWrite", 0, 1
+        env, Napi::Function::New(env, [](const Napi::CallbackInfo&) {}), "XRootD_FileWrite", 0, 1
     );
   }
 
   virtual ~FileWriteHandler() { tsfn_.Release(); }
 
-  virtual void HandleResponse(XrdCl::XRootDStatus *status, XrdCl::AnyObject *response) override {
+  virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
     // Write 操作的 response 通常为空，我们只关心 status
 
     tsfn_.BlockingCall([this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {

@@ -16,5 +16,14 @@ Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list
 // 基于 XrdCl::XRootDStatus 生成携带 code/status 的 Napi::Error
 Napi::Error StatusToError(Napi::Env env, const XrdCl::XRootDStatus& status);
 
+// 将 XrdCl::StatInfo 转化为 JS Object
+Napi::Object StatInfoToObject(Napi::Env env, const XrdCl::StatInfo* statInfo);
+
+// 将 JS Object 转化为 XrdCl::xattr_t 向量
+std::vector<XrdCl::xattr_t> ObjectToXAttrVector(Napi::Env env, Napi::Object obj);
+
+// 将 XrdCl::XAttr 向量转化为 JS Object
+Napi::Object XAttrVectorToObject(Napi::Env env, const std::vector<XrdCl::XAttr>& attrs);
+
 }  // namespace Utils
 }  // namespace XrdNode

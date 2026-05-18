@@ -70,5 +70,65 @@ Napi::Error StatusToError(Napi::Env env, const XrdCl::XRootDStatus& status) {
   return err;
 }
 
+// ============================================================================
+// 4. StatInfo 转换
+// ============================================================================
+Napi::Object StatInfoToObject(Napi::Env env, const XrdCl::StatInfo* statInfo) {
+  Napi::Object result = Napi::Object::New(env);
+  if (!statInfo) return result;
+
+  result.Set("id", Napi::String::New(env, statInfo->GetId()));
+  result.Set("size", Napi::BigInt::New(env, statInfo->GetSize()));
+  result.Set("flags", Napi::Number::New(env, statInfo->GetFlags()));
+  result.Set("modTime", Napi::Number::New(env, statInfo->GetModTime()));
+  result.Set("accessTime", Napi::Number::New(env, statInfo->GetAccessTime()));
+  result.Set("changeTime", Napi::Number::New(env, statInfo->GetChangeTime()));
+
+  result.Set("modTimeAsString", Napi::String::New(env, statInfo->GetModTimeAsString()));
+  result.Set("accessTimeAsString", Napi::String::New(env, statInfo->GetAccessTimeAsString()));
+  result.Set("changeTimeAsString", Napi::String::New(env, statInfo->GetChangeTimeAsString()));
+
+  result.Set("modeAsString", Napi::String::New(env, statInfo->GetModeAsString()));
+  result.Set("modeAsOctString", Napi::String::New(env, statInfo->GetModeAsOctString()));
+
+  result.Set("owner", Napi::String::New(env, statInfo->GetOwner()));
+  result.Set("group", Napi::String::New(env, statInfo->GetGroup()));
+  result.Set("checksum", Napi::String::New(env, statInfo->GetChecksum()));
+
+  return result;
+}
+
+// ============================================================================
+// 5. XAttr 转换
+// ============================================================================
+std::vector<XrdCl::xattr_t> ObjectToXAttrVector(Napi::Env env, Napi::Object obj) {
+  std::vector<XrdCl::xattr_t> vec;
+  Napi::Array keys = obj.GetPropertyNames();
+  uint32_t len = keys.Length();
+
+  for (uint32_t i = 0; i < len; ++i) {
+    Napi::Value keyVal = keys.Get(i);
+    std::string key = keyVal.As<Napi::String>().Utf8Value();
+    Napi::Value valVal = obj.Get(keyVal);
+    std::string val = valVal.As<Napi::String>().Utf8Value();
+
+    vec.push_back(std::make_tuple(key, val));
+  }
+
+  return vec;
+}
+
+Napi::Object XAttrVectorToObject(Napi::Env env, const std::vector<XrdCl::XAttr>& attrs) {
+  Napi::Object obj = Napi::Object::New(env);
+
+  for (const auto& attr : attrs) {
+    if (attr.status.IsOK()) {
+      obj.Set(attr.name, Napi::String::New(env, attr.value));
+    }
+  }
+
+  return obj;
+}
+
 }  // namespace Utils
 }  // namespace XrdNode
