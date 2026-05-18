@@ -27,10 +27,13 @@
       "conditions": [
         ["OS=='linux'", {
           "libraries": [
-            "-L<(module_root_dir)/libs/linux-<(target_arch)",
+            "-L<(module_root_dir)/deps/xrootd/lib",
             "-lXrdCl",
             "-lXrdUtils",
-            "-Wl,-rpath,'$$ORIGIN/../../libs/linux-<(target_arch)'"
+            "-lXrdXml",
+            # 运行期：告诉 .node 文件去发布包的 libs 目录下找物理文件
+            "-Wl,--disable-new-dtags",
+            "-Wl,-rpath,'$$ORIGIN/../../libs/linux-<(target_arch)'",
             # "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
             # 如果 XRootD 静态库内部依赖了其他系统库，你需要在这里显式链接
             # "-lpthread",
@@ -45,7 +48,7 @@
         ["OS=='mac'", {
           "libraries": [
             # Mac 的编译时链接
-            "-L<(module_root_dir)/libs/mac-<(target_arch)",
+            "-L<(module_root_dir)/deps/xrootd/lib",
             "-lXrdCl",
             "-lXrdUtils",
             

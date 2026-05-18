@@ -73,16 +73,17 @@ jobs:
       run: |
         mkdir -p libs/linux-x64
         # 只复制一份实体文件，去纹身、去版本号
-        cp deps/xrootd/lib/libXrdCl.so.6.0.1 libs/linux-x64/libXrdCl.so
-        cp deps/xrootd/lib/libXrdUtils.so.6.0.1 libs/linux-x64/libXrdUtils.so
-
-        sudo apt-get install -y patchelf
         # 1. 强行把它们自身的 SONAME 改为不带版本号的名字
-        patchelf --set-soname libXrdCl.so libs/linux-x64/libXrdCl.so
-        patchelf --set-soname libXrdUtils.so libs/linux-x64/libXrdUtils.so
+        cp deps/xrootd/lib/libXrdCl.so.6.0.1     libs/linux-x64/libXrdCl.so.6
+        cp deps/xrootd/lib/libXrdUtils.so.6.0.1  libs/linux-x64/libXrdUtils.so.6
+        cp deps/xrootd/lib/libXrdXml.so.6.0.1    libs/linux-x64/libXrdXml.so.6
 
-        # 2. 强行把 libXrdCl.so 对 libXrdUtils.so.6 的依赖，改成对 libXrdUtils.so 的依赖
-        patchelf --replace-needed libXrdUtils.so.6 libXrdUtils.so libs/linux-x64/libXrdCl.so
+        # sudo apt-get install -y patchelf
+        # 让该目录下所有的 .so 运行时都能在同级目录下找到彼此
+        # 这条命令是 O(n) 的，无论增加多少个库，都只需要这一行！
+        for f in libs/linux-x64/*.so*; do
+          patchelf --set-rpath '$ORIGIN' "$f"
+        done
 
     - uses: pnpm/action-setup@v5
     - name: Setup Node.js
