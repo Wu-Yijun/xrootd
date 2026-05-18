@@ -35,7 +35,9 @@ jobs:
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
       if: steps.cache-xrootd.outputs.cache-hit != 'true'
       # 安装 XRootD 编译所需的底层 C++ 依赖
-      run: apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+      run: |
+        apt-get update
+        apt-get install -y cmake g++ make patchelf
 
     - name: Build XRootD Static Libraries
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
