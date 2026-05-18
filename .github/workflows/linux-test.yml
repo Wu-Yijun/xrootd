@@ -81,7 +81,7 @@ jobs:
         ls -lh # log info
 
     - name: Save Cached XRootD Build
-      if: steps.cache-xrootd.outputs.cache-hit == 'true'
+      if: steps.cache-xrootd.outputs.cache-hit != 'true'
       id: cache-xrootd-save
       uses: actions/cache/save@v5
       with:
@@ -155,7 +155,13 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         path: dist
-        name: dist-debug
+        name: dist
+
+    - name: Upload Prebuilds for Debugging
+      uses: actions/upload-artifact@v6
+      with:
+        path: prebuilds
+        name: prebuilds
 
     - name: Upload Package
       uses: actions/upload-artifact@v6

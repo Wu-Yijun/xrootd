@@ -1,6 +1,6 @@
 {
   "name": "xrootd",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Prebuilt Node.js Native Addon for XRootD",
   "type": "module",
   "main": "dist/index.mjs",
