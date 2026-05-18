@@ -72,7 +72,8 @@ jobs:
     - name: Copy dynamic libs To distributed libs folder
       run: |
         mkdir -p libs/linux-x64
-        cp deps/xrootd/lib/libXrdCl.so.6.0.1 deps/xrootd/lib/libXrdUtils.so.6.0.1 libs/linux-x64/
+        cp -d deps/xrootd/lib/libXrdCl.so* libs/linux-x64/
+        cp -d deps/xrootd/lib/libXrdUtils.so* libs/linux-x64/
 
     - uses: pnpm/action-setup@v5
     - name: Setup Node.js

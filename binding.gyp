@@ -17,8 +17,10 @@
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(module_root_dir)/deps/xrootd/include/xrootd",
       ],
-      "cflags_cc": [
+      "cflags_cc!": [
         "-fno-exceptions",
+      ],
+      "cflags_cc": [
         "-std=c++17",
         "-frtti"
       ],
