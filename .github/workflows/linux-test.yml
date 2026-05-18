@@ -31,13 +31,11 @@ jobs:
         # key: linux-xrootd-v6.0.1-dynamic-b1 # ubuntu-22
         key: linux20-xrootd-v6.0.1-dynamic-b2 # ubuntu-20
 
-    # - name: Install System Dependencies for XRootD
-    #   # 只有当没有命中缓存时，才执行耗时的克隆和编译
-    #   if: steps.cache-xrootd.outputs.cache-hit != 'true'
-    #   # 安装 XRootD 编译所需的底层 C++ 依赖
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+    - name: Install System Dependencies for XRootD
+      # 只有当没有命中缓存时，才执行耗时的克隆和编译
+      if: steps.cache-xrootd.outputs.cache-hit != 'true'
+      # 安装 XRootD 编译所需的底层 C++ 依赖
+      run: sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
 
     - name: Build XRootD Static Libraries
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
