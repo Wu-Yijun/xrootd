@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
+    "target": "esnext",
+    "module": "nodenext",
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./lib",
     "strict": true,
-    "esModuleInterop": true,
-    // "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "types": ["node"]
   },
   "include": ["lib/**/*"],

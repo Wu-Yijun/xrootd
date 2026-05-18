@@ -24,7 +24,7 @@ jobs:
         path: deps/xrootd
         # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
         # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
-        key: linux-xrootd-v6.0.1-static-v6
+        key: linux-xrootd-v6.0.1-dynamic-b1
 
     - name: Install System Dependencies for XRootD
       # 只有当没有命中缓存时，才执行耗时的克隆和编译
@@ -42,65 +42,62 @@ jobs:
         git clone --depth 1 --branch v6.0.1 https://github.com/xrootd/xrootd.git xrootd-src
         mkdir xrootd-src/build && cd xrootd-src/build/
         
-        # ================= 黑魔法注入开始 =================
-        # 在 project( XRootD ) 之后强行插入一个宏，将所有的 SHARED 覆盖为 STATIC
-        sed -i '/project( XRootD )/a \
-        macro(add_library name)\
-          set(ARGS ${ARGN})\
-          list(FIND ARGS "SHARED" idx)\
-          if(idx GREATER -1)\
-            list(REMOVE_AT ARGS ${idx})\
-            list(INSERT ARGS ${idx} "STATIC")\
-          endif()\
-          _add_library(${name} ${ARGS})\
-        endmacro()' ../CMakeLists.txt
-        # ================= 黑魔法注入结束 =================
-        
         cmake .. \
           -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
-          -DBUILD_SHARED_LIBS=OFF \
           -DXRDCL_ONLY=ON \
           -DENABLE_SERVER=OFF \
           -DENABLE_PYTHON=OFF \
           -DCMAKE_CXX_STANDARD=17 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          -DCMAKE_POSITION_INDEPENDENT_CODE=ON 
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_BUILD_TYPE=MinSizeRel \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
           
-        make -j$(nproc)
-        make install
+        cmake --build --parallel .
+        cmake --install .
+
         # 编译完成后清理源码，节省缓存空间
         cd ../..
         rm -rf xrootd-src
+        
+        # 进入你的库目录
+        cd deps/xrootd/lib
 
-    - uses: pnpm/action-setup@v5
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '26'
-        cache: 'pnpm'
+        # 剥离所有 .so 文件的调试信息和非导出符号
+        # 注意：这不会影响动态链接的运行，只会让文件变小
+        strip --strip-unneeded *.so
 
+        ls -lh # log info
 
-    - name: Install NPM Dependencies & Build TypeScript
-      run: pnpm install
+    # - uses: pnpm/action-setup@v5
+    # - name: Setup Node.js
+    #   uses: actions/setup-node@v6
+    #   with:
+    #     node-version: '26'
+    #     cache: 'pnpm'
 
-    - name: Build Node Addon (node-gyp)
-      # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
-      continue-on-error: true # 即使编译失败也继续执行后续步骤，方便调试
-      run: |
-        pnpm run build
-        mkdir package
-        pnpm pack --pack-destination ./package
+    # - name: Install NPM Dependencies & Build TypeScript
+    #   run: pnpm install
 
-    - name: Upload Dist for Debugging
-      uses: actions/upload-artifact@v6
-      with:
-        path: dist
-        name: dist-debug
+    # - name: Build Node Addon (node-gyp)
+    #   # 手动触发 C++ 扩展编译，使用刚刚编译好的 XRootD 静态库
+    #   continue-on-error: true # 即使编译失败也继续执行后续步骤，方便调试
+    #   run: |
+    #     pnpm run build
+    #     mkdir package
+    #     pnpm pack --pack-destination ./package
 
-    - name: Upload Package
-      uses: actions/upload-artifact@v6
-      with:
-        path: package
-        name: node-addon-package
+    # - name: Upload Dist for Debugging
+    #   uses: actions/upload-artifact@v6
+    #   with:
+    #     path: dist
+    #     name: dist-debug
+
+    # - name: Upload Package
+    #   uses: actions/upload-artifact@v6
+    #   with:
+    #     path: package
+    #     name: node-addon-package
 
     # - name: Run Tests
     #   # 跑你的 Jest 测试用例

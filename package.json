@@ -1,19 +1,22 @@
 {
   "name": "xrootd",
-  "version": "1.0.4",
+  "version": "1.0.9",
   "description": "Prebuilt Node.js Native Addon for XRootD",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "packageManager": "pnpm@11.1.1",
+  "packageManager": "pnpm@11.1.2",
   "files": [
     "dist",
     "prebuilds"
   ],
   "scripts": {
-    "build:ts": "tsc",
+    "build:ts": "tsdown lib/index.ts",
     "build:addon": "node-gyp rebuild",
     "prebuild": "prebuildify --napi --strip",
-    "build": "npm run build:addon && npm run prebuild && npm run build:ts",
+    "build": "pnpm run build:addon && pnpm run prebuild && pnpm run build:ts",
+    "build:clean": "rm -r ./build && pnpm run build",
+    "pack": "pnpm pack --pack-destination ./packages",
     "test": "jest"
   },
   "dependencies": {
@@ -23,6 +26,7 @@
     "@types/node": "^25.8.0",
     "node-addon-api": "^8.7.0",
     "prebuildify": "^6.0.0",
+    "tsdown": "^0.22.0",
     "typescript": "^6.0.0"
   },
   "os": [

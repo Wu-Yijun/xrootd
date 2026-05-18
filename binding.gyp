@@ -18,32 +18,43 @@
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(module_root_dir)/deps/xrootd/include/xrootd",
       ],
-      "cflags!": [ "-fno-exceptions" ],
+      # "defines":[
+      # ],
+      # "cflags!": [ 
+      #   "-fno-exceptions"
+      # ],
+      # "cflags_cc": [
+      #   "-std=c++17",
+      #   "-frtti"  # <--- 关键：强制开启 RTTI 选项
+      # ],
+      "cflags_cc!": [
+        "-fno-exceptions",
+        # "-fno-rtti",  # <--- 关键：从默认配置中强行移除“禁用RTTI”选项
+      ],
+      # "xcode_settings": {
+      #   "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+      #   "CLANG_CXX_LIBRARY": "libc++"
+      # },
       "cflags_cc": [
         "-std=c++17",
-        "-frtti"  # <--- 关键：强制开启 RTTI 选项
+        "-frtti"
       ],
-      "cflags_cc!": [ 
-        "-fno-exceptions",
-        "-fno-rtti"  # <--- 关键：从默认配置中强行移除“禁用RTTI”选项
-      ],
-      "xcode_settings": {
-        "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
-        "CLANG_CXX_LIBRARY": "libc++"
-      },
       "conditions": [
         ["OS=='linux'", {
           "libraries": [
-            # 绝对关键：使用绝对路径或相对路径强制链接静态库 .a
-            "<(module_root_dir)/deps/xrootd/lib/libXrdCl.a",
+            "-L<(module_root_dir)/deps/xrootd/lib",
+            "-lXrdCl",
+            "-lXrdUtils",
+            "-Wl,-rpath,'$$ORIGIN/../../deps/xrootd/lib'"
+            # "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
             # 如果 XRootD 静态库内部依赖了其他系统库，你需要在这里显式链接
-            "-lpthread",
-            "-ldl",
-            "-lz",
-            "-lrt",
-            "-lssl",
-            "-lcrypto",
-            "-luuid"
+            # "-lpthread",
+            # "-ldl",
+            # "-lz",
+            # "-lrt",
+            # "-lssl",
+            # "-lcrypto",
+            # "-luuid"
           ]
         }],
         ["OS=='mac'", {

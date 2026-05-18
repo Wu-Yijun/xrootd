@@ -1,17 +1,18 @@
 // lib/file.ts
 
 import { Readable, Writable } from "stream";
-import nativeAddon from "./native";
-import {
-  AccessMode,
+import nativeAddon from "./native.ts";
+import type {
   INativeFile,
-  OpenFlags,
-  PropertyList,
   ReadChunkRequest,
   StatInfo,
   ReadStreamOptions,
   WriteStreamOptions
-} from "./types";
+} from "./types.ts";
+import {
+  OpenFlags,
+  AccessMode,
+} from './types.ts';
 
 /**
  * XRootD File 客户端

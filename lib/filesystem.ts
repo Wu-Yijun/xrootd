@@ -1,16 +1,17 @@
 // lib/filesystem.ts
-
-import * as path from 'path';
-import nativeAddon from './native';
-import { 
-  INativeFileSystem, 
-  LocationInfo, 
+import { posix } from 'node:path';
+import nativeAddon from './native.ts';
+import type {
+  INativeFileSystem,
+  LocationInfo,
   StatInfo,
-  MkDirFlags,
-  AccessMode,
   PropertyList,
   StatVFSInfo
-} from './types';
+} from './types.ts';
+import {
+  MkDirFlags,
+  AccessMode,
+} from './types.ts';
 
 /**
  * XRootD FileSystem 客户端
@@ -37,7 +38,7 @@ export class FileSystem {
    */
   private _normalize(targetPath: string): string {
     // XRootD 期望的通常是以 '/' 开头的绝对路径
-    const posixPath = path.posix.normalize(targetPath);
+    const posixPath = posix.normalize(targetPath);
     return posixPath.startsWith('/') ? posixPath : '/' + posixPath;
   }
 
@@ -78,7 +79,7 @@ export class FileSystem {
    * @param mode 访问权限模式 (默认 0755 对应的 AccessMode)
    */
   async mkdir(
-    dirPath: string, 
+    dirPath: string,
     flags: MkDirFlags = MkDirFlags.None,
     mode: AccessMode = AccessMode.UR | AccessMode.UW | AccessMode.UX
   ): Promise<void> {

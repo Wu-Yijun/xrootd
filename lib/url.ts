@@ -25,7 +25,7 @@ export class XRootDUrl {
   
   // XRootD 特有的双斜杠路径处理
   get path(): string {
-    // root://host//path -> pathname 会被解析为 //path
+    // root://host//path -> pathname 会被解析为 //path -> 转化为 /path
     return this._url.pathname.replace(/^\/+/, '/'); 
   }
 

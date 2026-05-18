@@ -204,6 +204,8 @@ export interface XrdNativeBindings {
   Env: {
     PutString(key: string, value: string): void;
     GetString(key: string): string | null;
+    PutInt(key: string, value: number): void;
+    GetInt(key: string): number | null;
   };
 }
 
