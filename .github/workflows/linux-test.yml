@@ -12,6 +12,9 @@ jobs:
   build-and-test:
     # runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
     runs-on: ubuntu-20.04 # 尽量保证 gcc 兼容性
+
+    container:
+      image: node:20-bullseye
     
     steps:
     - name: Checkout Repository
@@ -26,7 +29,7 @@ jobs:
         # 缓存的 Key。如果我们要升级 xrootd 版本，只需修改这里的字符串
         # key: ${{ runner.os }}-xrootd-v6.0.1-static-v1
         # key: linux-xrootd-v6.0.1-dynamic-b1 # ubuntu-22
-        key: linux20-xrootd-v6.0.1-dynamic-b1 # ubuntu-20
+        key: linux20-xrootd-v6.0.1-dynamic-b2 # ubuntu-20
 
     # - name: Install System Dependencies for XRootD
     #   # 只有当没有命中缓存时，才执行耗时的克隆和编译
@@ -71,6 +74,13 @@ jobs:
 
         ls -lh # log info
 
+    - name: Save Cached XRootD Build
+      id: cache-xrootd-save
+      uses: actions/cache/save@v5
+      with:
+        path: deps/xrootd
+        key: ${{ steps.cache-xrootd.outputs.cache-primary-key }}
+
     - name: Copy dynamic libs To distributed libs folder
       run: |
         mkdir -p libs/linux-x64
@@ -104,11 +114,11 @@ jobs:
         done
 
     - uses: pnpm/action-setup@v5
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '26'
-        cache: 'pnpm'
+    # - name: Setup Node.js
+    #   uses: actions/setup-node@v6
+    #   with:
+    #     node-version: '26'
+    #     cache: 'pnpm'
 
     - name: Install NPM Dependencies & Build TypeScript
       run: pnpm install
