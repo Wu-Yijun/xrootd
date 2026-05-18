@@ -9,7 +9,6 @@
 #include "handlers/FSXAttrHandlers.hpp"
 #include "utils/type_conversions.h"
 
-
 using XrdNode::AsyncStatHandler;
 using XrdNode::FSBufferHandler;
 using XrdNode::FSControlHandler;
@@ -56,14 +55,10 @@ Napi::Object XrdNodeFileSystem::Init(Napi::Env env, Napi::Object exports) {
 XrdNodeFileSystem::XrdNodeFileSystem(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<XrdNodeFileSystem>(info) {
   std::string url = info[0].As<Napi::String>().Utf8Value();
-  // TODO
   this->fs_ = new XrdCl::FileSystem(url);
 }
 
-XrdNodeFileSystem::~XrdNodeFileSystem() {
-  // TODO
-  delete this->fs_;
-}
+XrdNodeFileSystem::~XrdNodeFileSystem() { delete this->fs_; }
 
 Napi::Value XrdNodeFileSystem::Locate(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();

@@ -45,10 +45,10 @@ export interface StatInfo {
 }
 
 export interface LocationInfo {
-  host: string;
-  port: number;
-  isWritable: boolean;
-  type: "manager" | "server";
+  // [FIXED: 修正与 C++ FSLocateHandler 返回结构不符的问题。原字段为 host, port, isWritable, type]
+  address: string;    // 例如 "host:port"
+  type: number;       // XrdCl::LocationInfo::Location::Type 枚举值
+  accessType: number; // XrdCl::Access::Type 枚举值
 }
 
 export interface CopyJob {
@@ -63,12 +63,29 @@ export interface ReadChunkRequest {
 }
 
 
-export interface StatVFSInfo { // TODO
-  freeBlocks: bigint;
-  totalBlocks: bigint;
-  freeInodes: bigint;
-  totalInodes: bigint;
-  // ... 其他系统状态字段
+export interface StatVFSInfo {
+  // [FIXED: 修正与 C++ FSStatVFSHandler 返回结构不符的问题。原字段为 freeBlocks/totalBlocks 等]
+  nodesRW: bigint;
+  freeRW: bigint;
+  utilizationRW: number;
+  nodesStaging: bigint;
+  freeStaging: bigint;
+  utilizationStaging: number;
+}
+
+export interface DirListEntry {
+  // [FIXED: 新增目录项结构定义，与 C++ FSDirListHandler 返回结构对齐]
+  name: string;
+  hostAddress: string;
+  stat: StatInfo | null;
+}
+
+export interface XAttrStatusResult {
+  // [FIXED: 新增扩展属性操作状态结构定义，与 C++ FSXAttrStatusHandler 返回结构对齐]
+  name: string;
+  isOk: boolean;
+  code: number;
+  message: string;
 }
 
 export class XRootDError extends Error {
@@ -98,17 +115,17 @@ export interface INativeFile {
   Sync(): Promise<void>;
   Truncate(size: bigint): Promise<void>;
   IsOpen(): boolean; // 同步方法
-  GetProperty(name: string): Promise<string>;
-  SetProperty(name: string, value: string): Promise<void>;
+  GetProperty(name: string): { success: boolean, value: string }; // [FIXED: 与 C++ 同步返回对齐]
+  SetProperty(name: string, value: string): boolean; // [FIXED: 与 C++ 同步返回对齐]
   // 向量读写
   VectorRead(chunks: ReadChunkRequest[]): Promise<Buffer[]>;
   ReadChunks(chunks: ReadChunkRequest[]): Promise<Buffer[]>;
 
   // 扩展属性
-  SetXAttr(name: string, value: string): Promise<void>;
-  GetXAttr(name: string): Promise<string>;
-  DelXAttr(name: string): Promise<void>;
-  ListXAttr(): Promise<string[]>;
+  SetXAttr(attrs: Record<string, string>): Promise<XAttrStatusResult[]>; // [FIXED: 与 C++ FSXAttrStatusHandler 对齐]
+  GetXAttr(keys: string[]): Promise<Record<string, string>>; // [FIXED: 与 C++ FSXAttrDataHandler 对齐]
+  DelXAttr(keys: string[]): Promise<XAttrStatusResult[]>; // [FIXED: 与 C++ FSXAttrStatusHandler 对齐]
+  ListXAttr(): Promise<Record<string, string>>; // [FIXED: 与 C++ FSXAttrDataHandler 对齐]
 
   // 克隆
   Clone(list: CloneLocationRequest[]): Promise<void>;
@@ -121,28 +138,28 @@ export interface INativeFileSystem {
   Locate(path: string, flags: number): Promise<LocationInfo[]>;
   Stat(path: string): Promise<StatInfo>;
   Rm(path: string): Promise<void>;
-  MkDir(path: string, mode: number): Promise<void>;
+  MkDir(path: string, flags: number, mode: number): Promise<void>; // [FIXED: 补全 flags 参数]
   RmDir(path: string): Promise<void>;
   Mv(source: string, dest: string): Promise<void>;
-  Cat(path: string): Promise<Buffer>;
-  DirList(path: string, flags: number): Promise<string[]>; // 简化为文件名数组
+  SendCache(info: string): Promise<Buffer>; // [FIXED: 移除了 C++ 中已废弃的 Cat，替换为 SendCache]
+  DirList(path: string, flags: number): Promise<DirListEntry[]>; // [FIXED: 修正返回类型为 DirListEntry[]]
   DeepLocate(path: string, flags: number): Promise<LocationInfo[]>;
-  Query(queryCode: number, args: string): Promise<string>;
-  Truncate(path: string, size: bigint): Promise<void>;
+  Query(queryCode: number, args: Buffer): Promise<Buffer>; // [FIXED: 修正 args 与返回类型为 Buffer]
+  Truncate(path: string, size: bigint | number): Promise<void>; // [FIXED: 增加 number 兼容]
   ChMod(path: string, mode: number): Promise<void>;
   Ping(): Promise<void>;
   StatVFS(path: string): Promise<StatVFSInfo>;
   Protocol(): Promise<PropertyList>;
-  SendInfo(info: string): Promise<void>;
-  Prepare(requests: string[], flags: number): Promise<PropertyList>;
+  SendInfo(info: string): Promise<Buffer>; // [FIXED: 修正返回类型为 Buffer]
+  Prepare(requests: string[], flags: number, priority: number): Promise<Buffer>; // [FIXED: 补全 priority 参数，修正返回类型为 Buffer]
 
-  GetProperty(name: string): Promise<string>;
-  SetProperty(name: string, value: string): Promise<void>;
+  GetProperty(name: string): { success: boolean, value: string }; // [FIXED: 修正为同步返回对象]
+  SetProperty(name: string, value: string): boolean; // [FIXED: 修正为同步返回 boolean]
 
-  SetXAttr(path: string, name: string, value: string): Promise<void>;
-  GetXAttr(path: string, name: string): Promise<string>;
-  DelXAttr(path: string, name: string): Promise<void>;
-  ListXAttr(path: string): Promise<string[]>;
+  SetXAttr(path: string, attrs: Record<string, string>): Promise<XAttrStatusResult[]>; // [FIXED: 修正入参与返回结构]
+  GetXAttr(path: string, keys: string[]): Promise<Record<string, string>>; // [FIXED: 修正入参与返回结构]
+  DelXAttr(path: string, keys: string[]): Promise<XAttrStatusResult[]>; // [FIXED: 修正入参与返回结构]
+  ListXAttr(path: string): Promise<Record<string, string>>; // [FIXED: 修正返回结构]
 }
 
 /**
