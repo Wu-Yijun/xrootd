@@ -8,6 +8,14 @@
 
 namespace XrdNode {
 
+/**
+ * @brief 单文件分块写入 (Write) 操作的异步回调处理器 (Handler)。
+ * @details 专用于处理向 XrdCl::File 写入指定 Buffer 数据的异步传输与内存保持。
+ * 
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、传入的 JS 内存对象 Napi::Buffer<char>。
+ * - **内部处理**：构造时通过 Napi::Persistent 强引用 (Pin) JS 传入的 Buffer 对象，防止在底层异步 I/O 期间被 V8 垃圾回收；通过 TSFN 跳回 V8 主线程后，重置 Persistent 引用锁以恢复正常 GC 机制。完成后释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve `undefined`，失败 Reject `Napi::Error`。
+ */
 class FileWriteHandler : public XrdCl::ResponseHandler {
  public:
   FileWriteHandler(Napi::Env env, Napi::Promise::Deferred deferred, Napi::Buffer<char> jsBuffer)

@@ -11,6 +11,14 @@ namespace XrdNode {
 // ============================================================================
 // 1. FSStatVFSHandler
 // ============================================================================
+/**
+ * @brief 虚拟文件系统状态 (StatVFS) 操作的异步回调处理器 (Handler)。
+ * @details 专用于获取集群或文件系统层面的节点与存储利用率统计信息。
+ * 
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象。
+ * - **内部处理**：从底层的 AnyObject 中提取出 XrdCl::StatInfoVFS 指针，通过 TSFN 跳回 V8 主线程后，将 64 位整数字段通过 Napi::BigInt 包装，数值字段通过 Napi::Number 包装，随后释放 StatInfoVFS、释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve 包含 nodesRW/freeRW/utilizationRW 等属性的 JS Object，失败 Reject `Napi::Error`。
+ */
 class FSStatVFSHandler : public XrdCl::ResponseHandler {
  public:
   FSStatVFSHandler(Napi::Env env, Napi::Promise::Deferred deferred) : deferred_(deferred) {
@@ -59,6 +67,14 @@ class FSStatVFSHandler : public XrdCl::ResponseHandler {
 // ============================================================================
 // 2. FSDirListHandler
 // ============================================================================
+/**
+ * @brief 获取目录列表 (DirList) 操作的异步回调处理器 (Handler)。
+ * @details 专用于列出目录下的所有子项及其可选的 Stat 元数据。
+ * 
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象。
+ * - **内部处理**：从底层的 AnyObject 中提取出 XrdCl::DirectoryList 指针，通过 TSFN 跳回 V8 主线程后，循环遍历每一个 ListEntry，提取 name、hostAddress，并在存在 statInfo 时调用 Utils::StatInfoToObject 转换，组装为 JS 数组，随后释放 DirectoryList、释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve 包含所有目录项结构体的 JS Array，失败 Reject `Napi::Error`。
+ */
 class FSDirListHandler : public XrdCl::ResponseHandler {
  public:
   FSDirListHandler(Napi::Env env, Napi::Promise::Deferred deferred) : deferred_(deferred) {
@@ -117,6 +133,14 @@ class FSDirListHandler : public XrdCl::ResponseHandler {
 // ============================================================================
 // 3. FSLocateHandler
 // ============================================================================
+/**
+ * @brief 数据定位 (Locate / DeepLocate) 操作的异步回调处理器 (Handler)。
+ * @details 专用于获取文件所在的实际数据服务器地址列表和访问权限类型。
+ * 
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、操作名称 opName。
+ * - **内部处理**：从底层的 AnyObject 中提取出 XrdCl::LocationInfo 指针，通过 TSFN 跳回 V8 主线程后，循环遍历每一个 Location 节点，提取 address、type 和 accessType 枚举值并组装为 JS 数组，随后释放 LocationInfo、释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve 包含 { address, type, accessType } 的 JS Array，失败 Reject `Napi::Error`。
+ */
 class FSLocateHandler : public XrdCl::ResponseHandler {
  public:
   FSLocateHandler(Napi::Env env, Napi::Promise::Deferred deferred, const std::string& opName)

@@ -81,6 +81,7 @@ jobs:
         ls -lh # log info
 
     - name: Save Cached XRootD Build
+      if: steps.cache-xrootd.outputs.cache-hit == 'true'
       id: cache-xrootd-save
       uses: actions/cache/save@v5
       with:

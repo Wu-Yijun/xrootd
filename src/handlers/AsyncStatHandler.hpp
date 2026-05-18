@@ -12,6 +12,14 @@ namespace XrdNode {
 
 #include <XrdCl/XrdClFileSystem.hh>
 
+/**
+ * @brief 文件元数据查询 (Stat) 操作的异步回调处理器 (Handler)。
+ * @details 专用于获取单个文件或目录的详细属性及校验和等元数据信息。
+ * 
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象。
+ * - **内部处理**：从底层的 AnyObject 中提取出 XrdCl::StatInfo 指针，通过 TSFN 跳回 V8 主线程后，对底层的 64 位整数字段采用 Napi::BigInt 包装，其他常规数字与字符串采用对应 JS 类型包装，随后释放 StatInfo、释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve 包含 id/size/flags/modTime 等丰富元数据属性的 JS Object，失败 Reject `Napi::Error`。
+ */
 class AsyncStatHandler : public XrdCl::ResponseHandler {
  public:
   AsyncStatHandler(Napi::Env env, Napi::Promise::Deferred deferred) : deferred_(deferred) {

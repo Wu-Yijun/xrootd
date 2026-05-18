@@ -8,7 +8,17 @@
 
 namespace XrdNode {
 
-class FSBufferHandler : public XrdCl::ResponseHandler {
+/**
+ * @brief 文件系统返回二进制数据流操作的异步回调处理器 (Handler)。
+ * @details 适用于底层响应包含 XrdCl::Buffer 的操作（如 Query, SendInfo, SendCache, Prepare 等）。
+ *
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、操作名称 opName。
+ * - **内部处理**：从底层的 AnyObject 提取出 XrdCl::Buffer 指针，通过 TSFN 跳回 V8 主线程后，使用
+ * Napi::Buffer::Copy 安全地将二进制内容深拷贝到 V8 堆中，随后释放底层 Buffer、释放 TSFN 并 delete
+ * this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve `Napi::Buffer<char>`，失败 Reject `Napi::Error`。
+ */
+class FSBufferHandler : public XrdCl::ResponseHandler {  // TODO: need check
  public:
   FSBufferHandler(Napi::Env env, Napi::Promise::Deferred deferred, const std::string& opName)
       : deferred_(deferred), opName_(opName) {
