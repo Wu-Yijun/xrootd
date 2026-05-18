@@ -7,3 +7,5 @@
 /packages/
 /prebuilds/
 /xrootd-src/
+
+/.clangd

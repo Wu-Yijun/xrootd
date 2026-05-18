@@ -6,7 +6,6 @@
 #include "core/XrdNodeFileSystem.h"
 #include "core/XrdNodeCopyProcess.h"
 #include "core/XrdNodeEnv.h"
-// #include "core/XrdNodeUrl.h"
 
 // 模块初始化函数
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {

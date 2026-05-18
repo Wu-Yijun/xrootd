@@ -12,11 +12,48 @@ export interface IXRootDStatus {
   message: string;
 }
 
+// 在 lib/types.ts 导出枚举
+export enum StatFlags {
+  XBitSet      = 1,   //!< Executable/searchable bit set
+  IsDir        = 2,   //!< This is a directory
+  Other        = 4,   //!< Neither a file nor a directory
+  Offline      = 8,   //!< File is not online (ie. on disk)
+  POSCPending  = 64,  //!< File opened with POST flag, not yet successfully closed
+  IsReadable   = 16,  //!< Read access is allowed
+  IsWritable   = 32,  //!< Write access is allowed
+  BackUpExists = 128  //!< Back up copy exists
+}
+
 export interface StatInfo {
-  id: bigint; // C++ 中的 long long 映射为 JS 的 bigint
-  size: bigint;
-  flags: number;
-  modTime: number; // Unix timestamp
+  id: string;             // GetId()
+  size: bigint;           // GetSize()
+  flags: number;          // GetFlags()
+  modTime: number;        // GetModTime()
+  accessTime: number;     // GetAccessTime()
+  changeTime: number;     // GetChangeTime()
+  
+  // 字符串格式的时间和权限，方便 JS 层直接展示，不用自己转 format
+  modTimeAsString: string;    // GetModTimeAsString()
+  accessTimeAsString: string; // GetAccessTimeAsString()
+  changeTimeAsString: string; // GetChangeTimeAsString()
+  modeAsString: string;       // GetModeAsString()
+  modeAsOctString: string;    // GetModeAsOctString()
+  
+  owner: string;          // GetOwner()
+  group: string;          // GetGroup()
+  checksum: string;       // GetChecksum()
+
+  // helper functions
+  get modeOctal(): string;  // 映射 C++ 的 GetModeAsString (返回 '0755')
+  get modeString(): string; // 映射 C++ 的 GetModeAsOctString (返回 'rwxr-xr-x')
+  get isFile(): boolean;
+  get isDir(): boolean;
+  get isOther(): boolean;
+  get isOffline(): boolean;
+  get isPOSCPending(): boolean;
+  get isReadable(): boolean;
+  get isWritable(): boolean;
+  get isBackUpExists(): boolean;
 }
 
 export interface LocationInfo {

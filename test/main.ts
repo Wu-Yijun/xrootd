@@ -17,7 +17,9 @@ const notExist = Env.getInt('SomeUnknownKey'); // 返回 null
 console.log({ level, notExist, TimeoutResolution: Env.getInt("TimeoutResolution") });
 
 
-
+Env.putString('DebugLevel', 'Dump');
 const fs = new FileSystem("root://eos01.ihep.ac.cn/");
 console.log(fs);
-console.log(await fs.dirList("/eos/lhaaso/decode/km2a"));
+console.log("fs.stat", await fs.stat("/eos/lhaaso/decode/km2a/rmout.sh"));
+console.log("fs.stat", await fs.stat("/eos/lhaaso/"));
+console.log("Done!");

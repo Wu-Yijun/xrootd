@@ -16,6 +16,7 @@
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(module_root_dir)/deps/xrootd/include/xrootd",
+        "<(module_root_dir)/src",
       ],
       "cflags_cc!": [
         "-fno-exceptions",
@@ -29,12 +30,10 @@
           "libraries": [
             "-L<(module_root_dir)/deps/xrootd/lib",
             "-lXrdCl",
-            "-lXrdUtils",
-            "-lXrdXml",
             # 运行期：告诉 .node 文件去发布包的 libs 目录下找物理文件
             "-Wl,--disable-new-dtags",
             "-Wl,-rpath,'$$ORIGIN/../../libs/linux-<(target_arch)'",
-            # "<(module_root_dir)/deps/xrootd/lib/libXrdCrypto.a",
+            # "-Wl,-rpath,'$$ORIGIN/../../deps/xrootd/lib'",
             # 如果 XRootD 静态库内部依赖了其他系统库，你需要在这里显式链接
             # "-lpthread",
             # "-ldl",

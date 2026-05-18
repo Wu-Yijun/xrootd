@@ -1,4 +1,10 @@
+#include <XrdCl/XrdClFileSystem.hh>
+
 #include "XrdNodeFileSystem.h"
+
+#include "workers/FileSystemWorkers.h"
+using namespace XrdNode::Workers;
+
 
 Napi::Object XrdNodeFileSystem::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function func = DefineClass(env, "FileSystem", {
@@ -34,11 +40,14 @@ Napi::Object XrdNodeFileSystem::Init(Napi::Env env, Napi::Object exports) {
 
 XrdNodeFileSystem::XrdNodeFileSystem(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<XrdNodeFileSystem>(info) {
+    std::string url = info[0].As<Napi::String>().Utf8Value();
     // TODO
+    this->fs_ = new XrdCl::FileSystem(url);
 }
 
 XrdNodeFileSystem::~XrdNodeFileSystem() {
     // TODO
+    delete this->fs_;
 }
 
 Napi::Value XrdNodeFileSystem::Locate(const Napi::CallbackInfo& info) {
@@ -92,8 +101,20 @@ Napi::Value XrdNodeFileSystem::Ping(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value XrdNodeFileSystem::Stat(const Napi::CallbackInfo& info) {
-    // TODO
-    return Napi::Value();
+    Napi::Env env = info.Env();
+    std::string path = info[0].As<Napi::String>().Utf8Value();
+    
+    // 1. 创建 Promise
+    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+    
+    // 2. new 一个 Handler。注意：生命周期由 XRootD 接管，网络返回后自动 delete
+    AsyncStatHandler* handler = new AsyncStatHandler(env, deferred);
+    
+    // 3. 调用底层的异步方法，瞬间返回！
+    this->fs_->Stat(path, handler);
+    
+    // 4. 返回 Promise 给 JS
+    return deferred.Promise();
 }
 
 Napi::Value XrdNodeFileSystem::StatVFS(const Napi::CallbackInfo& info) {

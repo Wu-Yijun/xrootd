@@ -74,9 +74,25 @@ jobs:
         mkdir -p libs/linux-x64
         # 只复制一份实体文件，去纹身、去版本号
         # 1. 强行把它们自身的 SONAME 改为不带版本号的名字
+        # 1. 客户端核心基础库
         cp deps/xrootd/lib/libXrdCl.so.6.0.1     libs/linux-x64/libXrdCl.so.6
         cp deps/xrootd/lib/libXrdUtils.so.6.0.1  libs/linux-x64/libXrdUtils.so.6
         cp deps/xrootd/lib/libXrdXml.so.6.0.1    libs/linux-x64/libXrdXml.so.6
+        # 2. 密码学与安全框架核心
+        cp deps/xrootd/lib/libXrdSec-6.so        libs/linux-x64/
+        cp deps/xrootd/lib/libXrdSecProt-6.so    libs/linux-x64/
+        cp deps/xrootd/lib/libXrdCrypto.so.6.0.1 libs/linux-x64/libXrdCrypto.so.6
+        cp deps/xrootd/lib/libXrdCryptossl-6.so  libs/linux-x64/libXrdCryptossl-6.so
+        3. 核心认证插件 (Auth Plugins)
+        cp deps/xrootd/lib/libXrdSeckrb5-6.so    libs/linux-x64/
+        cp deps/xrootd/lib/libXrdSecunix-6.so  libs/linux-x64/
+        cp deps/xrootd/lib/libXrdSecsss-6.so    libs/linux-x64/
+        cp deps/xrootd/lib/libXrdSecpwd-6.so    libs/linux-x64/
+        cp deps/xrootd/lib/libXrdSecztn-6.so    libs/linux-x64/
+        # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
+        # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
+        # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
+        # cp deps/xrootd/lib/*.so.6.0.1    libs/linux-x64/*.so.6
 
         # sudo apt-get install -y patchelf
         # 让该目录下所有的 .so 运行时都能在同级目录下找到彼此

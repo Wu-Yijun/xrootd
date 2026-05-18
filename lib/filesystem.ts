@@ -11,7 +11,9 @@ import type {
 import {
   MkDirFlags,
   AccessMode,
+  StatFlags,
 } from './types.ts';
+import { reverseStr } from './utils.ts';
 
 /**
  * XRootD FileSystem 客户端
@@ -61,7 +63,20 @@ export class FileSystem {
    * @param targetPath 目标路径
    */
   async stat(targetPath: string): Promise<StatInfo> {
-    return this._internal.Stat(this._normalize(targetPath));
+    const rawStat = await this._internal.Stat(this._normalize(targetPath));
+    return {
+      ...rawStat,
+      get modeOctal() { return reverseStr(rawStat.modeAsOctString); },
+      get modeString() { return reverseStr(rawStat.modeAsString); },
+      get isFile() { return (rawStat.flags & StatFlags.IsDir) !== 0 },
+      get isDir() { return (rawStat.flags & StatFlags.XBitSet) !== 0 },
+      get isOther() { return (rawStat.flags & StatFlags.Other) !== 0 },
+      get isOffline() { return (rawStat.flags & StatFlags.Offline) !== 0 },
+      get isPOSCPending() { return (rawStat.flags & StatFlags.POSCPending) !== 0 },
+      get isReadable() { return (rawStat.flags & StatFlags.IsReadable) !== 0 },
+      get isWritable() { return (rawStat.flags & StatFlags.IsWritable) !== 0 },
+      get isBackUpExists() { return (rawStat.flags & StatFlags.BackUpExists) !== 0 },
+    };
   }
 
   /**
