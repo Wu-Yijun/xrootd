@@ -182,7 +182,7 @@ export interface INativeFile {
   ListXAttr(): Promise<string[]>;
 
   // 克隆
-  Clone(): any; // 返回底层的新 N-API 实例
+  Clone(list: CloneLocationRequest[]): Promise<void>;
 }
 
 /**
@@ -259,4 +259,12 @@ export interface ReadStreamOptions {
 
 export interface WriteStreamOptions {
   start?: bigint;
+}
+
+//  克隆位置列表
+export interface CloneLocationRequest {
+  srcFile: File;       // 源文件实例（必须已被打开供读取）
+  dstOffset: bigint | number;
+  srcOffset: bigint | number;
+  length: bigint | number;
 }

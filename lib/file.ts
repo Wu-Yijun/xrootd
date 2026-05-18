@@ -7,7 +7,8 @@ import type {
   ReadChunkRequest,
   StatInfo,
   ReadStreamOptions,
-  WriteStreamOptions
+  WriteStreamOptions,
+  CloneLocationRequest
 } from "./types.ts";
 import {
   OpenFlags,
@@ -185,13 +186,11 @@ export class File {
   // ==========================================================================
 
   /**
-   * 克隆当前文件句柄
-   * 返回一个新的 File 实例，拥有独立的 I/O 上下文，适用于并发的随机读取
+   * 将其他文件的指定区间在服务器端克隆到当前文件
+   * 当前文件必须以写入/更新模式打开
    */
-  clone(): File {
-    const clonedNativeInstance = this._internal.Clone();
-    // 使用底层的克隆实例来初始化一个新的 TS File 对象
-    return new File(clonedNativeInstance);
+  clone(locations: CloneLocationRequest[]): Promise<void>{
+    return this._internal.Clone(locations);
   }
 
   // ==========================================================================
