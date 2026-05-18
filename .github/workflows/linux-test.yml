@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-test:
     # runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
-    runs-on: ubuntu-20.04 # 尽量保证 gcc 兼容性
+    runs-on: ubuntu-latest
 
     container:
       image: node:20-bullseye
