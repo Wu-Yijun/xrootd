@@ -72,6 +72,8 @@ Napi::Value XrdNodeFileSystem::Locate(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -89,6 +91,8 @@ Napi::Value XrdNodeFileSystem::DeepLocate(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -105,6 +109,8 @@ Napi::Value XrdNodeFileSystem::Mv(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -124,6 +130,8 @@ Napi::Value XrdNodeFileSystem::Query(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -146,6 +154,8 @@ Napi::Value XrdNodeFileSystem::Truncate(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -161,6 +171,8 @@ Napi::Value XrdNodeFileSystem::Rm(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -180,6 +192,8 @@ Napi::Value XrdNodeFileSystem::MkDir(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -195,6 +209,8 @@ Napi::Value XrdNodeFileSystem::RmDir(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -212,6 +228,8 @@ Napi::Value XrdNodeFileSystem::ChMod(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -226,6 +244,8 @@ Napi::Value XrdNodeFileSystem::Ping(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -246,7 +266,7 @@ Napi::Value XrdNodeFileSystem::Stat(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
-    delete handler; // [FIXED] 触发析构，安全 Release TSFN，防止事件循环卡死
+    delete handler;  // [FIXED] 触发析构，安全 Release TSFN，防止事件循环卡死
     return deferred.Promise();
   }
 
@@ -264,6 +284,8 @@ Napi::Value XrdNodeFileSystem::StatVFS(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -286,6 +308,8 @@ Napi::Value XrdNodeFileSystem::DirList(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -301,6 +325,8 @@ Napi::Value XrdNodeFileSystem::SendInfo(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -324,6 +350,8 @@ Napi::Value XrdNodeFileSystem::Prepare(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -339,6 +367,8 @@ Napi::Value XrdNodeFileSystem::SendCache(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -376,6 +406,8 @@ Napi::Value XrdNodeFileSystem::SetXAttr(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -397,6 +429,8 @@ Napi::Value XrdNodeFileSystem::GetXAttr(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -418,6 +452,8 @@ Napi::Value XrdNodeFileSystem::DelXAttr(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -433,6 +469,8 @@ Napi::Value XrdNodeFileSystem::ListXAttr(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();

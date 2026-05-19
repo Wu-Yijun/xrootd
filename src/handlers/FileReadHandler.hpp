@@ -11,10 +11,15 @@ namespace XrdNode {
 /**
  * @brief 单文件分块读取 (Read) 操作的异步回调处理器 (Handler)。
  * @details 专用于处理从 XrdCl::File 读取指定长度数据块的零拷贝传输。
- * 
- * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、请求读取的字节数 requestSize。
- * - **内部处理**：在 C++ 层预先分配好 buffer_ 内存；底层响应到达后提取 ChunkInfo 获取实际读取长度 bytesRead；通过 TSFN 跳回 V8 主线程后，使用 Napi::Buffer::New 实现外部内存的零拷贝绑定，并挂载析构回调（在 V8 GC 回收该 Buffer 时自动触发 delete[] buffer_）。完成后释放 TSFN 并 delete this 自销毁。
- * - **返回结果**：向 JS Promise 成功 Resolve 包含实际读取数据的 `Napi::Buffer<char>`，失败 Reject `Napi::Error` 并在 Reject 前释放预分配的内存。
+ *
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、请求读取的字节数
+ * requestSize。
+ * - **内部处理**：在 C++ 层预先分配好 buffer_ 内存；底层响应到达后提取 ChunkInfo 获取实际读取长度
+ * bytesRead；通过 TSFN 跳回 V8 主线程后，使用 Napi::Buffer::New
+ * 实现外部内存的零拷贝绑定，并挂载析构回调（在 V8 GC 回收该 Buffer 时自动触发 delete[]
+ * buffer_）。完成后释放 TSFN 并 delete this 自销毁。
+ * - **返回结果**：向 JS Promise 成功 Resolve 包含实际读取数据的 `Napi::Buffer<char>`，失败 Reject
+ * `Napi::Error` 并在 Reject 前释放预分配的内存。
  */
 class FileReadHandler : public XrdCl::ResponseHandler {
  public:
@@ -46,7 +51,7 @@ class FileReadHandler : public XrdCl::ResponseHandler {
       }
     }
 
-    tsfn_.BlockingCall(
+    napi_status callStatus = tsfn_.BlockingCall(
         [this, status = *status, bytesRead](Napi::Env env, Napi::Function /*jsCallback*/) {
           if (status.IsOK()) {
             // 核心：零拷贝包装！
@@ -68,11 +73,15 @@ class FileReadHandler : public XrdCl::ResponseHandler {
             this->deferred_.Reject(err.Value());
           }
 
-          // 释放计数，允许 Node 进程正常退出，并销毁自身防泄漏
-          this->tsfn_.Release();
+          // 销毁自身防泄漏 (析构函数处理 tsfn_.Release())
           delete this;
         }
     );
+
+    if (callStatus != napi_ok) {
+      delete[] this->buffer_;
+      delete this;
+    }
   }
 
  private:

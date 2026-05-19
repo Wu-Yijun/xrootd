@@ -32,8 +32,8 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
         env,
         Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),  // Dummy JS 函数
         "XRootD_AsyncStat",                                          // 名称
-        0,  // 最大队列大小 (0 表示无限制)
-        1   // 初始线程数计数
+        0,                                                           // 最大队列大小 (0 表示无限制)
+        1                                                            // 初始线程数计数
     );
   }
 
@@ -52,7 +52,7 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
 
     // 5. 使用 TSFN 将数据发送回 JS 主线程
     // BlockingCall 会把 lambda 表达式放入 V8 主线程的事件队列
-    napi_status callStatus =tsfn_.BlockingCall(
+    napi_status callStatus = tsfn_.BlockingCall(
         [this, status = *status, statInfo](Napi::Env env, Napi::Function jsCallback) {
           // 这个 Lambda 运行在 V8 主线程！可以安全操作 JS 对象了！
 
@@ -66,13 +66,14 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
           }
 
           // 4. 【核心修复】只需 delete this。它会自动触发析构函数执行 tsfn_.Release()
-          delete this; // [FIXED]
+          delete statInfo;  // [FIXED] 补充丢失的释放
+          delete this;      // [FIXED]
         }
     );
 
     // 5. 【核心修复】如果 Node.js 事件队列拒绝接收（比如进程正在关闭）
     // 此时 Lambda 永远不会执行，我们必须在这里原地清理，防止内存泄漏！
-    if (callStatus != napi_ok) { // [FIXED]
+    if (callStatus != napi_ok) {  // [FIXED]
       delete statInfo;
       delete this;
     }

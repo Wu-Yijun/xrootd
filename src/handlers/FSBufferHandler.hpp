@@ -39,7 +39,7 @@ class FSBufferHandler : public XrdCl::ResponseHandler {  // TODO: need check
       response->Get(xrdBuffer);
     }
 
-    tsfn_.BlockingCall(
+    napi_status callStatus = tsfn_.BlockingCall(
         [this, status = *status, xrdBuffer](Napi::Env env, Napi::Function /*jsCallback*/) {
           if (status.IsOK() && xrdBuffer) {
             // 使用 Copy 确保数据被复制到 V8 堆内存中
@@ -52,10 +52,14 @@ class FSBufferHandler : public XrdCl::ResponseHandler {  // TODO: need check
           }
 
           delete xrdBuffer;
-          this->tsfn_.Release();
           delete this;
         }
     );
+
+    if (callStatus != napi_ok) {
+      delete xrdBuffer;
+      delete this;
+    }
   }
 
  private:

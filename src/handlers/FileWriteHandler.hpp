@@ -11,9 +11,12 @@ namespace XrdNode {
 /**
  * @brief 单文件分块写入 (Write) 操作的异步回调处理器 (Handler)。
  * @details 专用于处理向 XrdCl::File 写入指定 Buffer 数据的异步传输与内存保持。
- * 
- * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、传入的 JS 内存对象 Napi::Buffer<char>。
- * - **内部处理**：构造时通过 Napi::Persistent 强引用 (Pin) JS 传入的 Buffer 对象，防止在底层异步 I/O 期间被 V8 垃圾回收；通过 TSFN 跳回 V8 主线程后，重置 Persistent 引用锁以恢复正常 GC 机制。完成后释放 TSFN 并 delete this 自销毁。
+ *
+ * - **接受内容**：Napi::Env 环境句柄、Napi::Promise::Deferred Promise 延迟对象、传入的 JS 内存对象
+ * Napi::Buffer<char>。
+ * - **内部处理**：构造时通过 Napi::Persistent 强引用 (Pin) JS 传入的 Buffer 对象，防止在底层异步
+ * I/O 期间被 V8 垃圾回收；通过 TSFN 跳回 V8 主线程后，重置 Persistent 引用锁以恢复正常 GC
+ * 机制。完成后释放 TSFN 并 delete this 自销毁。
  * - **返回结果**：向 JS Promise 成功 Resolve `undefined`，失败 Reject `Napi::Error`。
  */
 class FileWriteHandler : public XrdCl::ResponseHandler {
@@ -34,20 +37,25 @@ class FileWriteHandler : public XrdCl::ResponseHandler {
   virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
     // Write 操作的 response 通常为空，我们只关心 status
 
-    tsfn_.BlockingCall([this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
-      if (status.IsOK()) {
-        this->deferred_.Resolve(env.Undefined());
-      } else {
-        Napi::Error err = Utils::StatusToError(env, status);
-        this->deferred_.Reject(err.Value());
-      }
+    napi_status callStatus =
+        tsfn_.BlockingCall([this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
+          if (status.IsOK()) {
+            this->deferred_.Resolve(env.Undefined());
+          } else {
+            Napi::Error err = Utils::StatusToError(env, status);
+            this->deferred_.Reject(err.Value());
+          }
 
-      // 核心：释放强引用，允许 V8 GC 回收那个 Buffer
-      this->bufferRef_.Reset();
+          // 核心：释放强引用，允许 V8 GC 回收那个 Buffer
+          this->bufferRef_.Reset();
+          delete this;
+        });
 
-      this->tsfn_.Release();
+    if (callStatus != napi_ok) {  // TODO: discuss bufferRef
+      // 在底层线程被丢弃时，重置引用可能不安全，但在析构中会隐式清理
+      // 因此 delete this 足矣
       delete this;
-    });
+    }
   }
 
  private:

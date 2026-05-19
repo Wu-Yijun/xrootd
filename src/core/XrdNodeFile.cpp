@@ -120,10 +120,12 @@ Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo& info) {
       handler
   );
 
-  if (!status.IsOK()) {
-    // 如果发起异步请求本身就失败了（例如本地状态错误），立即销毁 handler 并
-    // Reject
-    handler->HandleResponse(&status, nullptr);
+  if (!status.IsOK()) {  // TODO: discuss
+    // 如果发起异步请求本身就失败了（例如本地状态错误），立即销毁 handler 并 Reject
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -141,8 +143,11 @@ Napi::Value XrdNodeFile::Close(const Napi::CallbackInfo& info) {
   // 调用 XRootD 异步 Close
   XrdCl::XRootDStatus status = this->file_->Close(handler);
 
-  if (!status.IsOK()) {
-    handler->HandleResponse(&status, nullptr);
+  if (!status.IsOK()) {  // TODO: discuss
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -201,8 +206,11 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo& info) {
   // 发起服务端的异步克隆请求
   XrdCl::XRootDStatus status = this->file_->Clone(locs, handler);
 
-  if (!status.IsOK()) {
-    handler->HandleResponse(&status, nullptr);
+  if (!status.IsOK()) {  // TODO: discuss
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -236,6 +244,8 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
@@ -265,6 +275,8 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler;
+    return deferred.Promise();
   }
 
   return deferred.Promise();
