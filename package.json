@@ -34,7 +34,8 @@
     "node-addon-api": "^8.7.0",
     "prebuildify": "^6.0.0",
     "tsdown": "^0.22.0",
-    "typescript": "^6.0.0"
+    "typescript": "^6.0.0",
+    "unrun": "^0.3.0"
   },
   "os": [
     "linux",
