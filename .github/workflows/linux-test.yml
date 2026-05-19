@@ -182,7 +182,6 @@ jobs:
 
     - name: Start XRootD Local Server
       run: |
-
         echo "Starting xrootd server on port 32874 at $(pwd)..."
         # 使用 nohup 在后台启动，并将日志重定向，防止阻塞 CI 主进程
         nohup xrootd -p 32874 $(pwd) > xrootd-server.log 2>&1 &
