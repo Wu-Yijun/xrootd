@@ -116,14 +116,14 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: libs-${{ matrix.platform }}-${{ matrix.arch }}
-          path: libs/${{ matrix.platform }}-${{ matrix.arch }}
+          path: libs
           retention-days: 1
 
       - name: Upload prebuilds payload
         uses: actions/upload-artifact@v6
         with:
           name: prebuilds-${{ matrix.platform }}-${{ matrix.arch }}
-          path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
+          path: prebuilds
           retention-days: 1
 
   # =========================================================
@@ -239,14 +239,14 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: libs-${{ matrix.platform }}-${{ matrix.arch }}
-          path: libs/${{ matrix.platform }}-${{ matrix.arch }}
+          path: libs
           retention-days: 1
 
       - name: Upload prebuilds payload
         uses: actions/upload-artifact@v6
         with:
           name: prebuilds-${{ matrix.platform }}-${{ matrix.arch }}
-          path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
+          path: prebuilds
           retention-days: 1
 
 
