@@ -6,7 +6,7 @@ import { copyFileSync } from 'node:fs';
 import { AccessMode, FileSystem, MkDirFlags, OpenFlags } from "../dist/index.mjs";
 import { PWD, SERVER_URL, testAlive } from "./env.mjs";
 
-// if (!await testAlive()) process.exit(1);
+if (!await testAlive()) process.exit(1);
 
 const TMP = PWD + "/tmp";
 
