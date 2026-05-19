@@ -182,10 +182,21 @@ jobs:
 
     - name: Start XRootD Local Server
       run: |
-        echo "Starting xrootd server on port 32874 at $(pwd)..."
-        # 使用 nohup 在后台启动，并将日志重定向，防止阻塞 CI 主进程
-        nohup xrootd -p 32874 $(pwd) > xrootd-server.log 2>&1 &
-        
+        # 检查当前是否为 root 用户 (UID=0)
+        if [ "$(id -u)" = "0" ]; then
+          echo "Detected root user (Container environment). Dropping privileges..."
+          
+          # 1. 放开当前测试目录的权限，否则降权后的用户无法读写测试文件和日志
+          chmod -R 777 .
+          
+          # 2. 切换到系统内置的非特权用户 (daemon) 来在后台启动 xrootd
+          # 注意：$(pwd) 会在当前 root 的 shell 展开，以绝对路径传递给 daemon
+          su -s /bin/sh daemon -c "nohup xrootd -p 12345 '$(pwd)' > xrootd-server.log 2>&1 &"
+        else
+          echo "Detected non-root user (macOS environment). Running directly..."
+          nohup xrootd -p 12345 "$(pwd)" > xrootd-server.log 2>&1 &
+        fi
+
         # 等待几秒钟确保端口成功绑定
         sleep 10
         
