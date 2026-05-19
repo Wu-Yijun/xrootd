@@ -206,8 +206,12 @@ jobs:
     - name: Run Tests
       run: |
         pnpm test:prep
-        # allow daemon to read/write tmp files
-        chmod -R 777 test/tmp
+        if [ "$(id -u)" = "0" ]; then
+          # 确保后续你的测试脚本 (root 身份) 跑完后，还有权限去清理或读取这些文件
+          chmod -R 777 test/tmp
+          # 把测试目录的所有权移交给 daemon 用户和组
+          chown -R daemon:daemon test/tmp
+        fi
         pnpm test
 
     - name: Upload Server Logs on Failure
