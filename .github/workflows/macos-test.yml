@@ -35,7 +35,7 @@ jobs:
       uses: actions/cache/restore@v5
       with:
         path: deps/xrootd
-        key: macos-${{ matrix.arch }}-xrootd-v6.0.1-dynamic-b2
+        key: macos-${{ matrix.arch }}-xrootd-v6.0.1-dynamic-b3
 
     - name: Install System Dependencies for XRootD
       # Homebrew 默认已安装在 macOS runner 上
