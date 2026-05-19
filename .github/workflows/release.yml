@@ -302,5 +302,20 @@ jobs:
           echo "==== PREBUILDS ===="
           ls -R prebuilds/
 
+      # ---------------------------------------------------------
+      # 动态剥离 install 脚本，消除下游 pnpm 警告
+      # ---------------------------------------------------------
+      - name: Strip install script for consumer
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json'));
+            if (pkg.scripts && pkg.scripts.install) {
+              delete pkg.scripts.install;
+              console.log('Successfully removed install script for clean publishing.');
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
       - name: Publish to NPM
         run: pnpm publish --no-git-checks
