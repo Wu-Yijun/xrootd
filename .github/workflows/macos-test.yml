@@ -196,8 +196,6 @@ jobs:
 
     - name: Start XRootD Local Server
       run: |
-        cd test/tmp
-
         echo "Starting xrootd server on port 32874 at $(pwd)..."
         # 使用 nohup 在后台启动，并将日志重定向，防止阻塞 CI 主进程
         nohup xrootd -p 32874 $(pwd) > xrootd-server.log 2>&1 &
@@ -219,4 +217,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: xrootd-server-log-${{ matrix.name }}-${{ matrix.arch }}
-        path: test/tmp/xrootd-server.log
+        path: xrootd-server.log
