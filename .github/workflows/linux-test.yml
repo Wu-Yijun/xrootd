@@ -18,9 +18,9 @@ jobs:
           - os: ubuntu-latest       # 默认是 x64
             name: linux
             arch: x64
-          - os: ubuntu-24.04-arm    # 显式指定 ARM64 原生运行器
-            name: linux
-            arch: arm64
+          # - os: ubuntu-24.04-arm    # 显式指定 ARM64 原生运行器
+          #   name: linux
+          #   arch: arm64
 
     container:
       image: node:20-bullseye
@@ -200,8 +200,8 @@ jobs:
         # 等待几秒钟确保端口成功绑定
         sleep 10
         
-        # 打印部分启动日志以确认状态
-        cat xrootd-server.log | head -n 20
+        # 打印启动日志以确认状态
+        cat xrootd-server.log
         
     - name: Run Tests
       run: |
