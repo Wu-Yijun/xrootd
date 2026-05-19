@@ -255,19 +255,20 @@ jobs:
   # =========================================================
   publish:
     name: Publish to NPM
-    needs: [build-linux, build-macos]
+    # needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
-      
-      - name: Enable Corepack
-        run: corepack enable
+        with:
+          # 强制签出真实的分支名，而不是 detached HEAD
+          ref: ${{ github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies & Build TS
