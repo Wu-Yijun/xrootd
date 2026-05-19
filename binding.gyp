@@ -34,18 +34,28 @@
         }],
         ["OS=='mac'", {
           "libraries": [
-            # Mac 的编译时链接
+            # Mac 编译期链接阶段核心库
             "-L<(module_root_dir)/deps/xrootd/lib",
             "-lXrdCl",
             "-lXrdUtils",
             
-            # Mac 的运行时寻找 (使用 @loader_path 代替 $$ORIGIN)
-            "-Wl,-rpath,'@loader_path/../../libs/mac-<(target_arch)'"
-
-            # Mac 上的系统依赖 ?? 是否要提供
-            # "-framework CoreFoundation",
-            # "-framework Security"
-          ]
+            # Mac 运行期寻址：使用 @loader_path 寻址到分发依赖包目录
+            # 注意：此处文件夹名称设为 macos- 与 CI 矩阵逻辑保持严格一致
+            "-Wl,-rpath,'@loader_path/../../libs/macos-<(target_arch)'"
+          ],
+          "xcode_settings": {
+            # 确保 Xcode 编译器使用 C++17 标准
+            "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "CLANG_CXX_LIBRARY": "libc++",
+            
+            # 显式开启 RTTI 和异常处理（对应 Linux 的 cflags 调整）
+            "GCC_ENABLE_CPP_RTTI": "YES",
+            "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+            
+            # 设置最低兼容目标。设为 13.0 确保在 macos-14 (ARM) 上编译时，
+            # 产物在 macos-13 系统上也不会因底层系统库版本过高而崩溃
+            "MACOSX_DEPLOYMENT_TARGET": "13.0"
+          }
         }]
       ]
     }

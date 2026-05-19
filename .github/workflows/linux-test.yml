@@ -1,18 +1,16 @@
 name: Linux Build & Test
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
   # 允许在 GitHub 网页端手动触发
   workflow_dispatch:
 
 jobs:
   build-and-test:
-    # runs-on: ubuntu-22.04 # 对应 XRootD 官方支持的版本
-    # runs-on: ubuntu-latest
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     container:
       image: node:20-bullseye
