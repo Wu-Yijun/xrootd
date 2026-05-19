@@ -257,12 +257,15 @@ jobs:
     name: Publish to NPM
     needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
-        with:
-          # 强制签出真实的分支名，而不是 detached HEAD
-          ref: ${{ github.ref_name }}
+        # with:
+        #   # 强制签出真实的分支名，而不是 detached HEAD
+        #   ref: ${{ github.ref_name }}
           
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -303,6 +306,4 @@ jobs:
           ls -R prebuilds/
 
       - name: Publish to NPM
-        run: pnpm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish
