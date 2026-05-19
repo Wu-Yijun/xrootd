@@ -263,9 +263,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
-        # with:
-        #   # 强制签出真实的分支名，而不是 detached HEAD
-        #   ref: ${{ github.ref_name }}
+        with:
+          # 强制签出真实的分支名，而不是 detached HEAD
+          ref: ${{ github.ref_name }}
           
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
