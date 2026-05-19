@@ -10,12 +10,12 @@ on:
 jobs:
   build-and-test:
     name: Build on ${{ matrix.os }} (${{ matrix.arch }})
-    # macos-13 是 Intel x64, macos-14 是 M1 arm64
+    # macos-15-intel 是 Intel x64, macos-14 是 M1 arm64
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: macos-13
+          - os: macos-15-intel
             arch: x64
           - os: macos-14
             arch: arm64
