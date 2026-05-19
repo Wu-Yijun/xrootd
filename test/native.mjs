@@ -1,4 +1,6 @@
 // lib/native.ts
+/// <reference types="node" />
+
 import nodeGypBuild from 'node-gyp-build';
 import path from 'path';
 
@@ -7,5 +9,4 @@ import path from 'path';
 // nodeGypBuild 会自动去根目录下的 prebuilds/ 寻找匹配的文件
 // 例如：prebuilds/linux-x64/node.napi.node
 const nativeAddon = nodeGypBuild(path.resolve(import.meta.dirname, '..'));
-
-console.log(nativeAddon);
+console.log("nativeAddon:", nativeAddon);

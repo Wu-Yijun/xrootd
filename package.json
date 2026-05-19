@@ -1,6 +1,6 @@
 {
   "name": "xrootd",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Prebuilt Node.js Native Addon for XRootD",
   "type": "module",
   "main": "dist/index.mjs",
@@ -24,7 +24,8 @@
     "build": "pnpm run build:addon && pnpm run build:binaries && pnpm run build:tsc && pnpm run build:ts",
     "build:clean": "rm -r ./build && pnpm run build",
     "pack": "mkdir -p packages && pnpm pack --pack-destination ./packages",
-    "test": "jest"
+    "test:prep": "unrun ./test/prepare.ts",
+    "test": "node --test test/*.mjs"
   },
   "dependencies": {
     "node-gyp-build": "^4.8.0"

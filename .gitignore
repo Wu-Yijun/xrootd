@@ -7,6 +7,7 @@
 /packages/
 /prebuilds/
 /xrootd-src/
+tmp/
 
 /.clang-format
 /.clangd
