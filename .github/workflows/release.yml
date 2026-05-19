@@ -255,7 +255,7 @@ jobs:
   # =========================================================
   publish:
     name: Publish to NPM
-    # needs: [build-linux, build-macos]
+    needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
