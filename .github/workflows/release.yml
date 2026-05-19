@@ -1,101 +1,246 @@
-name: Build and Release Prebuilds
+name: Build Prebuilds & Publish to NPM
 
 on:
-  release:
-    types: [created]
+  # 通常在打 Tag (例如 v0.1.6) 时触发发布
+  push:
+    tags:
+      - 'v*'
+  # 保留手动触发以备不时之需
   workflow_dispatch:
 
+env:
+  XROOTD_VERSION: "v6.0.1"
+  CACHE_BATCH: "b1" # 更新这个值可以强制全局立即使缓存失效
+  NODE_VERSION: "20"
+
 jobs:
-  prebuild:
-    name: Prebuild on ${{ matrix.os }}
-    # 使用构建矩阵同时在 Linux 和 macOS (Intel & M1/M2) 上运行
+  build-binaries:
+    name: Build on ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
-        # ubuntu-22.04 -> Linux x64
-        # macos-13     -> macOS x64 (Intel)
-        # macos-14     -> macOS arm64 (Apple Silicon)
+        include:
+          # 使用 ubuntu-22.04 提供较好的 glibc 后向兼容性
+          - os: ubuntu-22.04
+            platform: linux
+            arch: x64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: macos-14
+            platform: darwin
+            arch: arm64
 
-    steps: # TODO: adjust referring to linux-test.yml
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
-    - name: Install Dependencies (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake g++ libssl-dev uuid-dev libxml2-dev zlib1g-dev
+      - name: Install pnpm
+        run: npm install -g pnpm@9
 
-    - name: Install Dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install cmake openssl ossp-uuid pkg-config
+      # ---------------- 依赖与缓存 ----------------
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make patchelf
 
-    - name: Build XRootD Static Libraries
-      run: |
-        git clone --depth 1 --branch v5.6.9 https://github.com/xrootd/xrootd.git xrootd-src
-        mkdir xrootd-src/build && cd xrootd-src/build
-        
-        cmake .. \
-          -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
-          -DENABLE_SERVER=OFF \
-          -DENABLE_PYTHON=OFF \
-          -DENABLE_SHARED=OFF \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      - name: Install System Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake openssl@3
+
+      - name: Cache XRootD Build
+        id: cache-xrootd
+        uses: actions/cache@v5
+        with:
+          path: deps/xrootd
+          key: release-${{ matrix.platform }}-${{ matrix.arch }}-xrootd-${{ env.XROOTD_VERSION }}-dynamic-${{ env.CACHE_BATCH }}
+
+      # ---------------- 编译 XRootD ----------------
+      - name: Build XRootD (Linux)
+        if: steps.cache-xrootd.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        run: |
+          git clone --depth 1 --branch ${{ env.XROOTD_VERSION }} https://github.com/xrootd/xrootd.git xrootd-src
+          mkdir xrootd-src/build && cd xrootd-src/build/
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+          cmake --build . --parallel $(nproc)
+          cmake --install .
+          cd ../.. && rm -rf xrootd-src
+          cd deps/xrootd/lib
+          strip --strip-unneeded *.so
+
+      - name: Build XRootD (macOS)
+        if: steps.cache-xrootd.outputs.cache-hit != 'true' && runner.os == 'macOS'
+        run: |
+          git clone --depth 1 --branch ${{ env.XROOTD_VERSION }} https://github.com/xrootd/xrootd.git xrootd-src
+          mkdir xrootd-src/build && cd xrootd-src/build/
+          OPENSSL_ROOT=$(brew --prefix openssl@3)
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT}" \
+            -DCMAKE_MACOSX_RPATH=ON -DCMAKE_INSTALL_RPATH="@loader_path"
+          cmake --build . --parallel $(sysctl -n hw.ncpu)
+          cmake --install .
+          cd ../.. && rm -rf xrootd-src
+          cd deps/xrootd/lib
+          strip -x *.dylib *.so 2>/dev/null || true
+
+      # ---------------- 处理动态库 & Rpath ----------------
+      - name: Copy & Patch dynamic libs (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          TARGET_DIR="libs/${{ matrix.platform }}-${{ matrix.arch }}"
+          mkdir -p "$TARGET_DIR"
+          # 核心基础库与安全插件
+          cp deps/xrootd/lib/libXrdCl.so.6.0.1     $TARGET_DIR/libXrdCl.so.6
+          cp deps/xrootd/lib/libXrdUtils.so.6.0.1  $TARGET_DIR/libXrdUtils.so.6
+          cp deps/xrootd/lib/libXrdXml.so.6.0.1    $TARGET_DIR/libXrdXml.so.6
+          cp deps/xrootd/lib/libXrdSec-6.so        $TARGET_DIR/
+          cp deps/xrootd/lib/libXrdSecProt-6.so    $TARGET_DIR/
+          cp deps/xrootd/lib/libXrdCrypto.so.6.0.1 $TARGET_DIR/libXrdCrypto.so.6
+          cp deps/xrootd/lib/libXrdCryptossl-6.so  $TARGET_DIR/libXrdCryptossl-6.so
+          # 认证插件
+          cp deps/xrootd/lib/libXrdSeckrb5-6.so    $TARGET_DIR/ || true
+          cp deps/xrootd/lib/libXrdSecunix-6.so    $TARGET_DIR/ || true
+          cp deps/xrootd/lib/libXrdSecsss-6.so     $TARGET_DIR/ || true
+          cp deps/xrootd/lib/libXrdSecpwd-6.so     $TARGET_DIR/ || true
+          cp deps/xrootd/lib/libXrdSecztn-6.so     $TARGET_DIR/ || true
+
+          for f in $TARGET_DIR/*.so*; do
+            patchelf --set-rpath '$ORIGIN' "$f"
+          done
+
+      - name: Copy & Patch dynamic libs (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          TARGET_DIR="libs/${{ matrix.platform }}-${{ matrix.arch }}"
+          mkdir -p "$TARGET_DIR"
+          cp deps/xrootd/lib/libXrdCl.6.0.1.dylib      "$TARGET_DIR/libXrdCl.6.dylib"
+          cp deps/xrootd/lib/libXrdUtils.6.0.1.dylib   "$TARGET_DIR/libXrdUtils.6.dylib"
+          cp deps/xrootd/lib/libXrdXml.6.0.1.dylib     "$TARGET_DIR/libXrdXml.6.dylib"
+          cp deps/xrootd/lib/libXrdSec-6.so            "$TARGET_DIR/"
+          cp deps/xrootd/lib/libXrdSecProt-6.so        "$TARGET_DIR/"
+          cp deps/xrootd/lib/libXrdCrypto.6.0.1.dylib  "$TARGET_DIR/libXrdCrypto.6.dylib"
+          cp deps/xrootd/lib/libXrdCryptossl-6.so      "$TARGET_DIR/"
           
-        make -j4
-        make install
+          cp deps/xrootd/lib/libXrdSeckrb5-6.so        "$TARGET_DIR/" || true
+          cp deps/xrootd/lib/libXrdSecunix-6.so        "$TARGET_DIR/" || true
+          cp deps/xrootd/lib/libXrdSecsss-6.so         "$TARGET_DIR/" || true
+          cp deps/xrootd/lib/libXrdSecpwd-6.so         "$TARGET_DIR/" || true
+          cp deps/xrootd/lib/libXrdSecztn-6.so         "$TARGET_DIR/" || true
 
-    - name: Install NPM Dependencies
-      run: npm install
+          for f in "$TARGET_DIR"/*.dylib "$TARGET_DIR"/*.so; do
+            if [ ! -f "$f" ]; then continue; fi
+            install_name_tool -id "@loader_path/$(basename "$f")" "$f"
+            install_name_tool -add_rpath "@loader_path" "$f" 2>/dev/null || true
+            otool -L "$f" | grep 'libXrd' | awk '{print $1}' | while read -r dep; do
+              if [[ "$dep" != *"@loader_path"* && "$dep" != *"@rpath"* ]]; then
+                dep_basename=$(basename "$dep")
+                install_name_tool -change "$dep" "@loader_path/$dep_basename" "$f"
+              fi
+            done
+          done
 
-    - name: Generate Prebuilds (prebuildify)
-      # 生成当前系统/架构的 .node 文件并放入 prebuilds/ 文件夹
-      run: npx prebuildify --napi --strip
+      # ---------------- 编译 NPM 产物 ----------------
+      - name: Install NPM Dependencies
+        run: |
+          # 动态清除 packageManager 以防止 CI 环境报错
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));delete pkg.packageManager;fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
+          pnpm install
 
-    - name: Upload Prebuild Artifacts
-      # 将生成的 prebuilds/ 目录上传到 GitHub Actions 的临时存储中
-      uses: actions/upload-artifact@v4
-      with:
-        name: prebuilds-${{ runner.os }}-${{ runner.arch }}
-        path: prebuilds/
+      - name: Build TypeScript & Native Addon
+        run: pnpm run build
 
-  # 当所有的 prebuild 任务完成后，将它们合并并推送到 npm (或者打包进 Release)
+      # ---------------- 收集产物 ----------------
+      - name: Upload libs payload
+        uses: actions/upload-artifact@v6
+        with:
+          name: libs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: libs/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 1
+
+      - name: Upload prebuilds payload
+        uses: actions/upload-artifact@v6
+        with:
+          name: prebuilds-${{ matrix.platform }}-${{ matrix.arch }}
+          path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 1
+
+  # =========================================================
+  # 发布任务：等待所有平台的构建完成，汇总所有架构的库文件并发布
+  # =========================================================
   publish:
-    needs: prebuild
+    name: Publish to NPM
+    needs: build-binaries
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        registry-url: 'https://registry.npmjs.org/'
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
 
-    - name: Download all Prebuild Artifacts
-      # 下载上面矩阵中生成的所有的预编译文件到本地的 prebuilds/ 目录
-      uses: actions/download-artifact@v4
-      with:
-        path: prebuilds
-        merge-multiple: true
+      - name: Install pnpm
+        run: npm install -g pnpm@9
 
-    - name: Build TypeScript
-      run: |
-        npm install
-        npm run build:ts
+      - name: Install Dependencies & Build TS
+        run: |
+          # save package.json
+          cp package.json package.json.old
+          
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));delete pkg.packageManager;fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
+          pnpm install
+          pnpm run build:tsc
+          pnpm run build:ts
+          
+          # restore package.json
+          rm package.json
+          cp package.json.old package.json
 
-    - name: Publish to NPM
-      # 发布包含 prebuilds/ 的 npm 包
-      # 注意：需要在 GitHub Secrets 中配置 NPM_TOKEN
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: npm publish --access public
+      # 下载所有 Matrix 构建出的动态库到 libs 目录
+      - name: Download all libs artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: libs-*
+          path: libs
+          merge-multiple: true 
+
+      # 下载所有 Matrix 构建出的原生节点到 prebuilds 目录
+      - name: Download all prebuilds artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: prebuilds-*
+          path: prebuilds
+          merge-multiple: true
+
+      - name: Verify Aggregated Files
+        run: |
+          echo "==== LIBS ===="
+          ls -R libs/
+          echo "==== PREBUILDS ===="
+          ls -R prebuilds/
+
+      - name: Publish to NPM
+        run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
