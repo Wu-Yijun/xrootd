@@ -206,6 +206,8 @@ jobs:
     - name: Run Tests
       run: |
         pnpm test:prep
+        # allow daemon to read/write tmp files
+        chmod -R 777 test/tmp
         pnpm test
 
     - name: Upload Server Logs on Failure
