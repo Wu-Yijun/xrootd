@@ -14,50 +14,37 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  build-binaries:
-    name: Build on ${{ matrix.os }} (${{ matrix.arch }})
+  # =========================================================
+  # Linux 容器构建环境
+  # =========================================================
+  build-linux:
+    name: Build Linux on ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          # 使用 ubuntu-22.04 提供较好的 glibc 后向兼容性
-          - os: ubuntu-22.04
+          - os: ubuntu-latest
             platform: linux
             arch: x64
           - os: ubuntu-24.04-arm
             platform: linux
             arch: arm64
-          - os: macos-15-intel
-            platform: darwin
-            arch: x64
-          - os: macos-14
-            platform: darwin
-            arch: arm64
+
+    container:
+      image: node:20-bullseye
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install pnpm
+        
+      - name: Install pnpm (Compatible with Node 20)
         run: npm install -g pnpm@9
 
       # ---------------- 依赖与缓存 ----------------
       - name: Install System Dependencies (Linux)
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake g++ make patchelf
-
-      - name: Install System Dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install cmake openssl@3
 
       - name: Cache XRootD Build
         id: cache-xrootd
@@ -68,7 +55,7 @@ jobs:
 
       # ---------------- 编译 XRootD ----------------
       - name: Build XRootD (Linux)
-        if: steps.cache-xrootd.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        if: steps.cache-xrootd.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch ${{ env.XROOTD_VERSION }} https://github.com/xrootd/xrootd.git xrootd-src
           mkdir xrootd-src/build && cd xrootd-src/build/
@@ -82,25 +69,6 @@ jobs:
           cd ../.. && rm -rf xrootd-src
           cd deps/xrootd/lib
           strip --strip-unneeded *.so
-
-      - name: Build XRootD (macOS)
-        if: steps.cache-xrootd.outputs.cache-hit != 'true' && runner.os == 'macOS'
-        run: |
-          git clone --depth 1 --branch ${{ env.XROOTD_VERSION }} https://github.com/xrootd/xrootd.git xrootd-src
-          mkdir xrootd-src/build && cd xrootd-src/build/
-          OPENSSL_ROOT=$(brew --prefix openssl@3)
-          cmake .. \
-            -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
-            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
-            -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
-            -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT}" \
-            -DCMAKE_MACOSX_RPATH=ON -DCMAKE_INSTALL_RPATH="@loader_path"
-          cmake --build . --parallel $(sysctl -n hw.ncpu)
-          cmake --install .
-          cd ../.. && rm -rf xrootd-src
-          cd deps/xrootd/lib
-          strip -x *.dylib *.so 2>/dev/null || true
 
       # ---------------- 处理动态库 & Rpath ----------------
       - name: Copy & Patch dynamic libs (Linux)
@@ -133,8 +101,94 @@ jobs:
             fi
           done
 
+      # ---------------- 编译 NPM 产物 ----------------
+      - name: Install NPM Dependencies
+        run: |
+          # 动态清除 packageManager 以防止 CI 环境报错
+          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json'));delete pkg.packageManager;fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
+          pnpm install
+
+      - name: Build TypeScript & Native Addon
+        run: pnpm run build
+
+      # ---------------- 收集产物 ----------------
+      - name: Upload libs payload
+        uses: actions/upload-artifact@v6
+        with:
+          name: libs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: libs/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 1
+
+      - name: Upload prebuilds payload
+        uses: actions/upload-artifact@v6
+        with:
+          name: prebuilds-${{ matrix.platform }}-${{ matrix.arch }}
+          path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
+          retention-days: 1
+
+  # =========================================================
+  # macOS 宿主机构建环境
+  # =========================================================
+  build-macos:
+    name: Build macOS on ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+
+      # ---------------- 依赖与缓存 ----------------
+      - name: Install System Dependencies (macOS)
+        run: |
+          brew update
+          brew install cmake openssl@3
+
+      - name: Cache XRootD Build
+        id: cache-xrootd
+        uses: actions/cache@v5
+        with:
+          path: deps/xrootd
+          key: release-${{ matrix.platform }}-${{ matrix.arch }}-xrootd-${{ env.XROOTD_VERSION }}-dynamic-${{ env.CACHE_BATCH }}
+
+      # ---------------- 编译 XRootD ----------------
+      - name: Build XRootD (macOS)
+        if: steps.cache-xrootd.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch ${{ env.XROOTD_VERSION }} https://github.com/xrootd/xrootd.git xrootd-src
+          mkdir xrootd-src/build && cd xrootd-src/build/
+          OPENSSL_ROOT=$(brew --prefix openssl@3)
+          cmake .. \
+            -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
+            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT}" \
+            -DCMAKE_MACOSX_RPATH=ON -DCMAKE_INSTALL_RPATH="@loader_path"
+          cmake --build . --parallel $(sysctl -n hw.ncpu)
+          cmake --install .
+          cd ../.. && rm -rf xrootd-src
+          cd deps/xrootd/lib
+          strip -x *.dylib *.so 2>/dev/null || true
+
+      # ---------------- 处理动态库 & Rpath ----------------
       - name: Copy & Patch dynamic libs (macOS)
-        if: runner.os == 'macOS'
         run: |
           TARGET_DIR="libs/${{ matrix.platform }}-${{ matrix.arch }}"
           mkdir -p "$TARGET_DIR"
@@ -195,12 +249,13 @@ jobs:
           path: prebuilds/${{ matrix.platform }}-${{ matrix.arch }}
           retention-days: 1
 
+
   # =========================================================
   # 发布任务：等待所有平台的构建完成，汇总所有架构的库文件并发布
   # =========================================================
   publish:
     name: Publish to NPM
-    needs: build-binaries
+    needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
