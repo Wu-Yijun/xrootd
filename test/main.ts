@@ -38,4 +38,20 @@ const txt = new TextDecoder().decode(data);
 console.log(txt);
 
 
-await f.open("root://eos01.ihep.ac.cn//eos/lhaaso/decode/km2a/rmout", OpenFlags.Read, AccessMode.OR/*  */);
+finfo.isOther
+
+// await f.open("root://eos01.ihep.ac.cn//eos/lhaaso/decode/km2a/rmout", OpenFlags.Read, AccessMode.OR/*  */);
+
+const path = "/eos/user/w/wuyijun1/";
+
+// console.log(await fs.dirList("/eos/user/w/"));
+// await fs.chmod(path + "test.txt", AccessMode.UR | AccessMode.UW | AccessMode.UX);
+
+// console.log(await fs.deepLocate(path + "test.txt"));
+
+console.log("exist", await fs.stat(path + "test.txt"));
+console.log("exist", await fs.exists(path + "temp"));
+console.log("ensureDir",await fs.ensureDir(path + "temp/dir"));
+console.log(await fs.mkdir(path + "temp/dir/files"));
+console.log(await fs.mv(path + "test.txt", path + "temp/dir/files"));
+// await fs.rmdir(path + "temp/dir")

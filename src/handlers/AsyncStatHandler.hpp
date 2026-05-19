@@ -32,8 +32,8 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
         env,
         Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),  // Dummy JS 函数
         "XRootD_AsyncStat",                                          // 名称
-        0,                                                           // 最大队列大小 (0 表示无限制)
-        1                                                            // 初始线程数计数
+        0,  // 最大队列大小 (0 表示无限制)
+        1   // 初始线程数计数
     );
   }
 
@@ -52,38 +52,12 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
 
     // 5. 使用 TSFN 将数据发送回 JS 主线程
     // BlockingCall 会把 lambda 表达式放入 V8 主线程的事件队列
-    tsfn_.BlockingCall(
+    napi_status callStatus =tsfn_.BlockingCall(
         [this, status = *status, statInfo](Napi::Env env, Napi::Function jsCallback) {
           // 这个 Lambda 运行在 V8 主线程！可以安全操作 JS 对象了！
 
           if (status.IsOK() && statInfo) {
             auto result = Utils::StatInfoToObject(env, statInfo);
-            // Napi::Object result = Napi::Object::New(env);
-
-            // // 数字类型 (64位整数必须用 Napi::BigInt)
-            // result.Set("id", Napi::String::New(env, statInfo->GetId()));
-            // result.Set("size", Napi::BigInt::New(env, statInfo->GetSize()));
-
-            // // 32位及以下的数字可以直接用 Napi::Number
-            // result.Set("flags", Napi::Number::New(env, statInfo->GetFlags()));
-            // result.Set("modTime", Napi::Number::New(env, statInfo->GetModTime()));
-            // result.Set("accessTime", Napi::Number::New(env, statInfo->GetAccessTime()));
-            // result.Set("changeTime", Napi::Number::New(env, statInfo->GetChangeTime()));
-
-            // // 字符串类型
-            // result.Set("modTimeAsString", Napi::String::New(env,
-            // statInfo->GetModTimeAsString())); result.Set("accessTimeAsString",
-            // Napi::String::New(env, statInfo->GetAccessTimeAsString()));
-            // result.Set("changeTimeAsString", Napi::String::New(env,
-            // statInfo->GetChangeTimeAsString()));
-
-            // result.Set("modeAsString", Napi::String::New(env, statInfo->GetModeAsString()));
-            // result.Set("modeAsOctString", Napi::String::New(env,
-            // statInfo->GetModeAsOctString()));
-
-            // result.Set("owner", Napi::String::New(env, statInfo->GetOwner()));
-            // result.Set("group", Napi::String::New(env, statInfo->GetGroup()));
-            // result.Set("checksum", Napi::String::New(env, statInfo->GetChecksum()));
 
             this->deferred_.Resolve(result);
           } else {
@@ -91,15 +65,17 @@ class AsyncStatHandler : public XrdCl::ResponseHandler {
             this->deferred_.Reject(err.Value());
           }
 
-          delete statInfo;  // 清理 XRootD 返回的内存
-
-          // 2. 极其重要：告诉 Node.js 这个线程安全函数已经用完了，可以减去活跃计数
-          tsfn_.Release();
-
-          // 3. 极其重要：XRootD 不会自动 delete Handler，必须自杀防泄漏！
-          delete this;
+          // 4. 【核心修复】只需 delete this。它会自动触发析构函数执行 tsfn_.Release()
+          delete this; // [FIXED]
         }
     );
+
+    // 5. 【核心修复】如果 Node.js 事件队列拒绝接收（比如进程正在关闭）
+    // 此时 Lambda 永远不会执行，我们必须在这里原地清理，防止内存泄漏！
+    if (callStatus != napi_ok) { // [FIXED]
+      delete statInfo;
+      delete this;
+    }
   }
 
  private:

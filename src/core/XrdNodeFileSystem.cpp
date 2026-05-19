@@ -246,6 +246,8 @@ Napi::Value XrdNodeFileSystem::Stat(const Napi::CallbackInfo& info) {
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
+    delete handler; // [FIXED] 触发析构，安全 Release TSFN，防止事件循环卡死
+    return deferred.Promise();
   }
 
   // 4. 返回 Promise 给 JS

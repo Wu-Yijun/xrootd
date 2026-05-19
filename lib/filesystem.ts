@@ -8,14 +8,15 @@ import type {
   PropertyList,
   StatVFSInfo,
   DirListEntry,
-  XAttrStatusResult
+  XAttrStatusResult,
+  IXRootDError
 } from './types.ts';
 import {
   MkDirFlags,
   AccessMode,
   StatFlags,
 } from './enums.ts';
-import { reverseStr } from './utils.ts';
+import { isXrdError, reverseStr } from './utils.ts';
 
 /**
  * XRootD FileSystem 客户端
@@ -143,11 +144,14 @@ export class FileSystem {
     try {
       await this.stat(targetPath);
       return true;
-    } catch (err: any) {
-      // 假设底层 C++ 在找不到文件时会抛出包含错误码的 error
-      // 具体的 code 取决于 error_handler.cc 中的实现 (如 ENOENT)
-      if (err.code === 'ENOENT' || err.status === 3011) { // 3011 是 XRootD 常见的 kXR_NotFound
-        return false;
+    } catch (err) {
+      debugger;
+      if (isXrdError(err)) {
+        // 假设底层 C++ 在找不到文件时会抛出包含错误码的 error
+        // 具体的 code 取决于 error_handler.cc 中的实现 (如 ENOENT)
+        if (err.xrdErrNo === 3011) { // 3011 是 XRootD 常见的 kXR_NotFound
+          return false;
+        }
       }
       // 其他网络或权限错误则继续向上抛出
       throw err;

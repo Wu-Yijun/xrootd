@@ -6,10 +6,11 @@
 
 export type PropertyList = Record<string, string | number | boolean>;
 
-export interface IXRootDStatus {
-  status: number;
-  code: number;
-  message: string;
+export interface IXRootDError extends Error {
+  xrdStatus: number;
+  xrdCode: number;
+  xrdErrNo:number;
+  xrdErrMsg: string;
 }
 
 export interface StatInfo {
@@ -91,10 +92,11 @@ export interface XAttrStatusResult {
 export class XRootDError extends Error {
   code: number;
   status: number;
-  constructor(status: IXRootDStatus) {
+  constructor(status: IXRootDError) {
     super(status.message);
-    this.code = status.code;
-    this.status = status.status;
+    // TODO...
+    this.code = status.xrdCode;
+    this.status = status.xrdStatus;
   }
 }
 
