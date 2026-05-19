@@ -43,8 +43,8 @@ jobs:
       # ---------------- 依赖与缓存 ----------------
       - name: Install System Dependencies (Linux)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++ make patchelf
+          apt-get update
+          apt-get install -y cmake g++ make patchelf
 
       - name: Cache XRootD Build
         id: cache-xrootd
