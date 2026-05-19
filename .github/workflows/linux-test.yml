@@ -148,8 +148,7 @@ jobs:
       continue-on-error: true # 即使编译失败也继续执行后续步骤，方便调试
       run: |
         pnpm run build
-        mkdir package
-        pnpm pack --pack-destination ./package
+        pnpm run pack
 
     - name: Upload Dist for Debugging
       uses: actions/upload-artifact@v6
@@ -166,9 +165,15 @@ jobs:
     - name: Upload Package
       uses: actions/upload-artifact@v6
       with:
-        path: package
+        path: packages
         name: node-addon-package
 
     # - name: Run Tests
     #   # 跑你的 Jest 测试用例
     #   run: pnpm test
+
+    - name: Tree print package
+      run: |
+        cd packages
+        for f in *.tgz; do tar -xvzf "$f"; done
+        tree -h .

@@ -15,5 +15,6 @@
 /.npmignore
 /binding.gyp
 /tsconfig.json
+/tsdown.config.ts
 /build-script.sh
 /pnpm-lock.yaml

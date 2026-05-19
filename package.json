@@ -1,6 +1,6 @@
 {
   "name": "xrootd",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Prebuilt Node.js Native Addon for XRootD",
   "type": "module",
   "main": "dist/index.mjs",
@@ -16,12 +16,14 @@
     "LICENSE-MIT"
   ],
   "scripts": {
-    "build:ts": "tsdown lib/index.ts",
+    "install": "echo 'Skip implicit node-gyp rebuild. Handled by explicit build.'",
+    "build:tsc": "tsc --noEmit",
+    "build:ts": "tsdown",
     "build:addon": "node-gyp rebuild",
-    "prebuild": "prebuildify --napi --strip",
-    "build": "pnpm run build:addon && pnpm run prebuild && pnpm run build:ts",
+    "build:binaries": "prebuildify --napi --strip",
+    "build": "pnpm run build:addon && pnpm run build:binaries && pnpm run build:tsc && pnpm run build:ts",
     "build:clean": "rm -r ./build && pnpm run build",
-    "pack": "pnpm pack --pack-destination ./packages",
+    "pack": "mkdir -p packages && pnpm pack --pack-destination ./packages",
     "test": "jest"
   },
   "dependencies": {
