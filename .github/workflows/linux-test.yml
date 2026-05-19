@@ -187,7 +187,7 @@ jobs:
         nohup xrootd -p 32874 $(pwd) > xrootd-server.log 2>&1 &
         
         # 等待几秒钟确保端口成功绑定
-        sleep 3
+        sleep 10
         
         # 打印部分启动日志以确认状态
         cat xrootd-server.log | head -n 20
