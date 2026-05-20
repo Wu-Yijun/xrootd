@@ -97,16 +97,18 @@ jobs:
           fi
           
       - name: Running Node Test
-        run: |
-          node --test tests/*.ts > log.txt
-          tail -n 100 log.txt
+        run: node --test tests/*.ts > log.txt
+
+      - name: Print Logs
+        if: always() 
+        run: tail -n 100 log.txt
 
       - name: Upload Server Logs on Failure
         # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: xrootd-server-log-${{ matrix.name }}-${{ matrix.arch }}
+          name: xrootd-server-log-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             xrootd-server.log
             log.txt
