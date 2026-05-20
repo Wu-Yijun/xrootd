@@ -51,12 +51,12 @@ jobs:
           pnpm install xrootd@latest
 
       - name: Install XRootD Server for Testing (Linux)
-        if: runner.platform == 'Linux'
+        if: {{ runner.platform == 'Linux' }}
         run: |
-          apt-get update
-          apt-get install -y xrootd-server xrootd-client
+          sudo apt-get update
+          sudo apt-get install -y xrootd-server xrootd-client
       - name: Install XRootD Server for Testing (macOS)
-        if: runner.platform == 'macOS'
+        if: {{ runner.platform == 'macOS' }}
         run: |
           # macOS 物理机使用 Homebrew 安装
           brew install xrootd
