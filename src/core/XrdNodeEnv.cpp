@@ -1,7 +1,9 @@
 #include "XrdNodeEnv.h"
 
 #include <XrdCl/XrdClDefaultEnv.hh>
-
+#include <algorithm>
+#include <cctype>
+#include <string>
 
 // 辅助宏：用于快速抛出类型错误，保持代码整洁
 #define THROW_TYPE_ERROR_RETURN_NULL(env, msg)                   \
@@ -9,6 +11,16 @@
     Napi::TypeError::New(env, msg).ThrowAsJavaScriptException(); \
     return env.Null();                                           \
   } while (0)
+
+namespace {
+std::string UnifyKey(std::string key) {
+  std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+  if (key.compare(0, 4, "xrd_") == 0) {
+    key = key.substr(4);
+  }
+  return key;
+}
+}
 
 Napi::Object XrdNodeEnv::Init(Napi::Env env, Napi::Object exports) {
   // 1. 创建一个空的 JS 对象: {}
@@ -41,11 +53,26 @@ Napi::Value XrdNodeEnv::PutString(const Napi::CallbackInfo& info) {
   std::string key = info[0].As<Napi::String>().Utf8Value();
   std::string value = info[1].As<Napi::String>().Utf8Value();
 
-  // 3. 调用 XRootD 底层 API (设置全局环境变量)
-  XrdCl::DefaultEnv::GetEnv()->PutString(key, value);
+  // 3. 安全检查：确保底层配置对象已初始化
+  XrdCl::Env* envPtr = XrdCl::DefaultEnv::GetEnv();
+  if (!envPtr) {
+    THROW_TYPE_ERROR_RETURN_NULL(env, "XRootD environment is not initialized");
+  }
 
-  // 4. 返回 undefined (在 C++ 中用 env.Undefined() 表示)
-  return env.Undefined();
+  // 4. 拦截日志配置，使之立即对 C++ 侧 logger 生效
+  std::string unifiedKey = UnifyKey(key);
+  if (unifiedKey == "loglevel" || unifiedKey == "debuglevel") {
+    XrdCl::DefaultEnv::SetLogLevel(value);
+  } else if (unifiedKey == "logfile" || unifiedKey == "debugfile") {
+    XrdCl::DefaultEnv::SetLogFile(value);
+  } else if (unifiedKey == "logmask") {
+    XrdCl::DefaultEnv::SetLogMask("All", value);
+  }
+
+  // 5. 调用 XRootD 底层 API 并返回写入结果
+  bool success = envPtr->PutString(key, value);
+
+  return Napi::Boolean::New(env, success);
 }
 
 Napi::Value XrdNodeEnv::GetString(const Napi::CallbackInfo& info) {
@@ -58,11 +85,14 @@ Napi::Value XrdNodeEnv::GetString(const Napi::CallbackInfo& info) {
   std::string key = info[0].As<Napi::String>().Utf8Value();
   std::string value;
 
-  // XRootD 的 GetString 通常返回一个 bool，指示该 key 是否存在
-  if (XrdCl::DefaultEnv::GetEnv()->GetString(key, value)) {
+  XrdCl::Env* envPtr = XrdCl::DefaultEnv::GetEnv();
+  if (!envPtr) {
+    THROW_TYPE_ERROR_RETURN_NULL(env, "XRootD environment is not initialized");
+  }
+
+  if (envPtr->GetString(key, value)) {
     return Napi::String::New(env, value);
   } else {
-    // 如果环境变量不存在，返回 JS 的 null
     return env.Null();
   }
 }
@@ -76,12 +106,16 @@ Napi::Value XrdNodeEnv::PutInt(const Napi::CallbackInfo& info) {
   }
 
   std::string key = info[0].As<Napi::String>().Utf8Value();
-  // JS 的 Number 是双精度浮点，底层通常需要 int，这里做安全的强制转换
   int value = info[1].As<Napi::Number>().Int32Value();
 
-  XrdCl::DefaultEnv::GetEnv()->PutInt(key, value);
+  XrdCl::Env* envPtr = XrdCl::DefaultEnv::GetEnv();
+  if (!envPtr) {
+    THROW_TYPE_ERROR_RETURN_NULL(env, "XRootD environment is not initialized");
+  }
 
-  return env.Undefined();
+  bool success = envPtr->PutInt(key, value);
+
+  return Napi::Boolean::New(env, success);
 }
 
 Napi::Value XrdNodeEnv::GetInt(const Napi::CallbackInfo& info) {
@@ -94,7 +128,12 @@ Napi::Value XrdNodeEnv::GetInt(const Napi::CallbackInfo& info) {
   std::string key = info[0].As<Napi::String>().Utf8Value();
   int value;
 
-  if (XrdCl::DefaultEnv::GetEnv()->GetInt(key, value)) {
+  XrdCl::Env* envPtr = XrdCl::DefaultEnv::GetEnv();
+  if (!envPtr) {
+    THROW_TYPE_ERROR_RETURN_NULL(env, "XRootD environment is not initialized");
+  }
+
+  if (envPtr->GetInt(key, value)) {
     return Napi::Number::New(env, value);
   } else {
     return env.Null();

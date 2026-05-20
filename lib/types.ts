@@ -188,9 +188,9 @@ export interface XrdNativeBindings {
   FileSystem: { new(url: string): INativeFileSystem };
   CopyProcess: { new(): INativeCopyProcess };
   Env: {
-    PutString(key: string, value: string): void;
+    PutString(key: string, value: string): boolean;
     GetString(key: string): string | null;
-    PutInt(key: string, value: number): void;
+    PutInt(key: string, value: number): boolean;
     GetInt(key: string): number | null;
   };
 }
