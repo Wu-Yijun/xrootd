@@ -16,16 +16,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: Linux
+            platform: linux
             arch: x64
           # - os: ubuntu-24.04-arm
-          #   platform: Linux
+          #   platform: linux
           #   arch: arm64
           # - os: macos-26-intel
-          #   platform: macOS
+          #   platform: darwin
           #   arch: x64
           # - os: macos-latest
-          #   platform: macOS
+          #   platform: darwin
           #   arch: arm64
 
     steps:
@@ -51,12 +51,12 @@ jobs:
           pnpm install xrootd@latest
 
       - name: Install XRootD Server for Testing (Linux)
-        if: {{ runner.platform == 'Linux' }}
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y xrootd-server xrootd-client
       - name: Install XRootD Server for Testing (macOS)
-        if: {{ runner.platform == 'macOS' }}
+        if: runner.os == 'macOS'
         run: |
           # macOS 物理机使用 Homebrew 安装
           brew install xrootd
