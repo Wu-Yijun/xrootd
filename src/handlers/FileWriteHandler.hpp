@@ -32,7 +32,12 @@ class FileWriteHandler : public XrdCl::ResponseHandler {
     );
   }
 
-  virtual ~FileWriteHandler() { tsfn_.Release(); }
+  virtual ~FileWriteHandler() {
+    tsfn_.Release();
+    if (!bufferRef_.IsEmpty()) {
+      bufferRef_.Reset();
+    }
+  }
 
   virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
     // Write 操作的 response 通常为空，我们只关心 status

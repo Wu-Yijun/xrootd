@@ -24,7 +24,7 @@ namespace XrdNode {
 class FileReadHandler : public XrdCl::ResponseHandler {
  public:
   FileReadHandler(Napi::Env env, Napi::Promise::Deferred deferred, uint32_t requestSize)
-      : deferred_(deferred), requestSize_(requestSize) {
+      : deferred_(deferred), requestSize_(requestSize), buffer_transferred_(false) {
     // 1. 在发起请求前，就在 C++ 层分配好内存
     buffer_ = new char[requestSize];
 
@@ -33,7 +33,13 @@ class FileReadHandler : public XrdCl::ResponseHandler {
     );
   }
 
-  virtual ~FileReadHandler() { tsfn_.Release(); }
+  virtual ~FileReadHandler() {
+    tsfn_.Release();
+    if (buffer_ && !buffer_transferred_) {
+      delete[] buffer_;
+      buffer_ = nullptr;
+    }
+  }
 
   // 获取底层内存指针供 XRootD 使用
   char* GetBuffer() const { return buffer_; }
@@ -57,6 +63,7 @@ class FileReadHandler : public XrdCl::ResponseHandler {
             // 核心：零拷贝包装！
             // 我们把 C++ 的 buffer_ 直接塞给 Napi::Buffer，并告诉它在被 GC
             // 时执行 delete[]
+            this->buffer_transferred_ = true;
             Napi::Buffer<char> jsBuffer = Napi::Buffer<char>::New(
                 env,
                 this->buffer_,
@@ -67,8 +74,7 @@ class FileReadHandler : public XrdCl::ResponseHandler {
             );
             this->deferred_.Resolve(jsBuffer);
           } else {
-            // 如果失败，依然需要手动清理我们自己申请的内存，防泄漏
-            delete[] this->buffer_;
+            // 如果失败，防泄漏，析构中也会处理
             Napi::Error err = Utils::StatusToError(env, status);
             this->deferred_.Reject(err.Value());
           }
@@ -79,7 +85,6 @@ class FileReadHandler : public XrdCl::ResponseHandler {
     );
 
     if (callStatus != napi_ok) {
-      delete[] this->buffer_;
       delete this;
     }
   }
@@ -89,6 +94,7 @@ class FileReadHandler : public XrdCl::ResponseHandler {
   Napi::ThreadSafeFunction tsfn_;
   char* buffer_;
   uint32_t requestSize_;
+  bool buffer_transferred_;
 };
 
 }  // namespace XrdNode

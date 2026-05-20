@@ -10,6 +10,7 @@ on:
 jobs:
   build-and-test:
     name: Build on ${{ matrix.os }} (${{ matrix.arch }})
+    if: contains(github.event.head_commit.message, '[macos]') || contains(github.event.head_commit.message, '[macos-')
     # macos-15-intel 是 Intel x64, macos-14 是 M1 arm64
     runs-on: ${{ matrix.os }}
     strategy:
@@ -23,6 +24,19 @@ jobs:
             arch: arm64
 
     steps:
+    - name: Should Run
+      id: filter
+      shell: bash
+      run: |
+        MSG="${{ github.event.head_commit.message }}"
+        # 定义一个变量来决定是否运行
+        # 如果 msg 包含 [macos] 或者 [macos-${{ matrix.arch }}] 则设为 true
+        if [[ "$MSG" == *"[macos]"* ]] || [[ "$MSG" == *"[macos-${{ matrix.arch }}]"* ]]; then
+          echo "run=true" >> $GITHUB_OUTPUT
+        else
+          echo "run=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Checkout Repository
       uses: actions/checkout@v6
 

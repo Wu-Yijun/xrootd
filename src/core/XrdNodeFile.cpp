@@ -1,10 +1,21 @@
 #include "XrdNodeFile.h"
 
+#include "handlers/AsyncStatHandler.hpp"
+#include "handlers/FSBufferHandler.hpp"
+#include "handlers/FSXAttrHandlers.hpp"
 #include "handlers/FileControlHandler.hpp"
+#include "handlers/FilePgReadHandler.hpp"
+#include "handlers/FilePgWriteHandler.hpp"
 #include "handlers/FileReadHandler.hpp"
+#include "handlers/FileVectorReadHandler.hpp"
+#include "handlers/FileVectorWriteHandler.hpp"
 #include "handlers/FileWriteHandler.hpp"
 
+using XrdNode::FilePgReadHandler, XrdNode::FilePgWriteHandler;
 using XrdNode::FileReadHandler, XrdNode::FileWriteHandler, XrdNode::FileControlHandler;
+using XrdNode::FileVectorReadHandler, XrdNode::FileVectorWriteHandler;
+using XrdNode::FSBufferHandler, XrdNode::AsyncStatHandler;
+using XrdNode::FSXAttrStatusHandler, XrdNode::FSXAttrDataHandler;
 
 Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
   // 1. 定义 JS 类的名称和它原型链上的所有方法
@@ -19,13 +30,23 @@ Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("Write", &XrdNodeFile::Write),
        InstanceMethod("Sync", &XrdNodeFile::Sync),
        InstanceMethod("Truncate", &XrdNodeFile::Truncate),
+       InstanceMethod("PreRead", &XrdNodeFile::PreRead),
 
-       // 向量读取
+       // 向量读写与特殊操作
        InstanceMethod("VectorRead", &XrdNodeFile::VectorRead),
        InstanceMethod("ReadChunks", &XrdNodeFile::ReadChunks),
+       InstanceMethod("VectorWrite", &XrdNodeFile::VectorWrite),
+       InstanceMethod("WriteV", &XrdNodeFile::WriteV),
+       InstanceMethod("ReadV", &XrdNodeFile::ReadV),
+       InstanceMethod("PgRead", &XrdNodeFile::PgRead),
+       InstanceMethod("PgWrite", &XrdNodeFile::PgWrite),
+       InstanceMethod("Fcntl", &XrdNodeFile::Fcntl),
+       InstanceMethod("Visa", &XrdNodeFile::Visa),
 
        // 同步方法
        InstanceMethod("IsOpen", &XrdNodeFile::IsOpen),
+       InstanceMethod("IsSecure", &XrdNodeFile::IsSecure),
+       InstanceMethod("TryOtherServer", &XrdNodeFile::TryOtherServer),
 
        // 扩展属性
        InstanceMethod("GetProperty", &XrdNodeFile::GetProperty),
@@ -77,8 +98,16 @@ XrdNodeFile::~XrdNodeFile() {
 }
 
 Napi::Value XrdNodeFile::IsOpen(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  return Napi::Boolean::New(info.Env(), file_->IsOpen());
+}
+
+Napi::Value XrdNodeFile::IsSecure(const Napi::CallbackInfo& info) {
+  return Napi::Boolean::New(info.Env(), file_->IsSecure());
+}
+
+Napi::Value XrdNodeFile::TryOtherServer(const Napi::CallbackInfo& info) {
+  XrdCl::XRootDStatus status = file_->TryOtherServer();
+  return Napi::Boolean::New(info.Env(), status.IsOK());
 }
 
 // ============================================================================
@@ -217,8 +246,20 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value XrdNodeFile::Stat(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  bool force = false;
+  if (info.Length() >= 1 && info[0].IsBoolean()) {
+    force = info[0].As<Napi::Boolean>().Value();
+  }
+  auto* handler = new AsyncStatHandler(env, deferred);
+  auto status = this->file_->Stat(force, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
@@ -253,81 +294,473 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
 
 Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
+  if (info.Length() < 2) {
+    Napi::TypeError::New(env, "Write expects offset and buffer/fd").ThrowAsJavaScriptException();
+    return env.Null();
+  }
 
-  // 1. 提前声明一个布尔变量
   bool lossless;
   uint64_t offset = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
-  // 3. (可选但推荐的防御性编程) 检查是否丢失了精度
   if (!lossless) {
     Napi::TypeError::New(env, "Offset value is out of bounds for uint64_t")
         .ThrowAsJavaScriptException();
     return env.Null();
   }
-  // 从 TS 接收 Buffer
-  Napi::Buffer<char> jsBuffer = info[1].As<Napi::Buffer<char>>();
 
+  // fd overload: Write(offset, size, fd, [fdoff])
+  if (info[1].IsNumber() && info.Length() >= 3) {
+    uint32_t size = info[1].As<Napi::Number>().Uint32Value();
+    int fd = info[2].As<Napi::Number>().Int32Value();
+    
+    XrdCl::Optional<uint64_t> fdoff;
+    if (info.Length() >= 4 && info[3].IsBigInt()) {
+      bool fdoff_lossless;
+      fdoff = info[3].As<Napi::BigInt>().Uint64Value(&fdoff_lossless);
+      if (!fdoff_lossless) {
+        Napi::TypeError::New(env, "fdoff value is out of bounds for uint64_t").ThrowAsJavaScriptException();
+        return env.Null();
+      }
+    }
+    
+    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+    auto* handler = new FileControlHandler(env, deferred, "WriteFD");
+    auto status = this->file_->Write(offset, size, fdoff, fd, handler);
+    if (!status.IsOK()) {
+      Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+      deferred.Reject(err.Value());
+      delete handler;
+    }
+    return deferred.Promise();
+  }
+
+  // buffer overload: Write(offset, buffer)
+  if (info[1].IsBuffer()) {
+    Napi::Buffer<char> jsBuffer = info[1].As<Napi::Buffer<char>>();
+    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+    auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
+    auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
+    if (!status.IsOK()) {
+      Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+      deferred.Reject(err.Value());
+      delete handler;
+    }
+    return deferred.Promise();
+  }
+
+  Napi::TypeError::New(env, "Invalid arguments for Write").ThrowAsJavaScriptException();
+  return env.Null();
+}
+
+Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-
-  auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
-
-  // 瞬间异步调用，直接传入 JS Buffer 的底层指针和长度
-  auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
+  auto* handler = new FileControlHandler(env, deferred, "Sync");
+  XrdCl::XRootDStatus status = this->file_->Sync(handler);
   if (!status.IsOK()) {
     Napi::Error err = XrdNode::Utils::StatusToError(env, status);
     deferred.Reject(err.Value());
     delete handler;
-    return deferred.Promise();
   }
-
   return deferred.Promise();
 }
 
-Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+Napi::Value XrdNodeFile::Truncate(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  bool lossless;
+  uint64_t size = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+  if (!lossless) {
+    Napi::TypeError::New(env, "Size value is out of bounds for uint64_t")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileControlHandler(env, deferred, "Truncate");
+  XrdCl::XRootDStatus status = this->file_->Truncate(size, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
-Napi::Value XrdNodeFile::Truncate(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+Napi::Value XrdNodeFile::PreRead(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsArray()) {
+    Napi::TypeError::New(env, "PreRead expects an array of tracts").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Array arr = info[0].As<Napi::Array>();
+  XrdCl::TractList tracts;
+  bool lossless;
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value itemValue = arr.Get(i);
+    if (!itemValue.IsObject()) continue;
+    Napi::Object item = itemValue.As<Napi::Object>();
+    uint64_t offset = item.Get("offset").As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless) {
+      Napi::RangeError::New(env, "Offset value out of bounds").ThrowAsJavaScriptException();
+      return env.Null();
+    }
+    uint32_t size = item.Get("size").As<Napi::Number>().Uint32Value();
+    tracts.push_back(XrdCl::TractInfo(offset, size));
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileControlHandler(env, deferred, "PreRead");
+  XrdCl::XRootDStatus status = this->file_->PreRead(tracts, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::Visa(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSBufferHandler(env, deferred, "Visa");
+  XrdCl::XRootDStatus status = this->file_->Visa(handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::VectorRead(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsArray()) {
+    Napi::TypeError::New(env, "VectorRead expects an array of {offset, size}")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileVectorReadHandler(env, deferred);
+
+  Napi::Array arr = info[0].As<Napi::Array>();
+  bool lossless;
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value itemValue = arr.Get(i);
+    if (!itemValue.IsObject()) continue;
+    Napi::Object item = itemValue.As<Napi::Object>();
+    uint64_t offset = item.Get("offset").As<Napi::BigInt>().Uint64Value(&lossless);
+    if (!lossless) {
+      Napi::RangeError::New(env, "Offset out of bounds").ThrowAsJavaScriptException();
+      delete handler;
+      return env.Null();
+    }
+    uint32_t size = item.Get("size").As<Napi::Number>().Uint32Value();
+    handler->AddChunk(offset, size);
+  }
+
+  XrdCl::XRootDStatus status = this->file_->VectorRead(handler->GetChunkList(), nullptr, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::ReadChunks(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  return this->VectorRead(info);
+}
+
+Napi::Value XrdNodeFile::VectorWrite(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsArray()) {
+    Napi::TypeError::New(env, "VectorWrite expects an array of {offset, buffer}")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileVectorWriteHandler(env, deferred);
+
+  Napi::Array arr = info[0].As<Napi::Array>();
+  bool lossless;
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value itemValue = arr.Get(i);
+    if (!itemValue.IsObject()) continue;
+    Napi::Object item = itemValue.As<Napi::Object>();
+    uint64_t offset = item.Get("offset").As<Napi::BigInt>().Uint64Value(&lossless);
+    Napi::Value bufVal = item.Get("buffer");
+    if (!lossless || !bufVal.IsBuffer()) {
+      Napi::TypeError::New(env, "Invalid offset or buffer").ThrowAsJavaScriptException();
+      delete handler;
+      return env.Null();
+    }
+    Napi::Buffer<char> jsBuf = bufVal.As<Napi::Buffer<char>>();
+    handler->AddChunk(offset, jsBuf.Length(), jsBuf);
+  }
+
+  XrdCl::XRootDStatus status = this->file_->VectorWrite(handler->GetChunkList(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::WriteV(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 2 || !info[1].IsArray()) {
+    Napi::TypeError::New(env, "WriteV expects offset and an array of Buffers")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  bool lossless;
+  uint64_t offset = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+  if (!lossless) {
+    Napi::RangeError::New(env, "Offset out of bounds").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileVectorWriteHandler(env, deferred);
+
+  Napi::Array arr = info[1].As<Napi::Array>();
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value bufVal = arr.Get(i);
+    if (!bufVal.IsBuffer()) {
+      Napi::TypeError::New(env, "Expected array of Buffers").ThrowAsJavaScriptException();
+      delete handler;
+      return env.Null();
+    }
+    handler->AddIovec(bufVal.As<Napi::Buffer<char>>());
+  }
+
+  std::vector<struct iovec>& iovs = handler->GetIovecList();
+  XrdCl::XRootDStatus status = this->file_->WriteV(offset, iovs.data(), iovs.size(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::ReadV(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::TypeError::New(env, "ReadV not implemented, please use VectorRead")
+      .ThrowAsJavaScriptException();
+  return env.Null();
+}
+
+Napi::Value XrdNodeFile::PgRead(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 2) {
+    Napi::TypeError::New(env, "PgRead expects offset and size").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  bool lossless;
+  uint64_t offset = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+  uint32_t size = info[1].As<Napi::Number>().Uint32Value();
+  if (!lossless) {
+    Napi::RangeError::New(env, "Offset out of bounds").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FilePgReadHandler(env, deferred, size);
+
+  XrdCl::XRootDStatus status = this->file_->PgRead(offset, size, handler->GetBuffer(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::PgWrite(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 4 || !info[2].IsBuffer() || !info[3].IsArray()) {
+    Napi::TypeError::New(env, "PgWrite expects offset, size, buffer, checksumsArray")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  bool lossless;
+  uint64_t offset = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+  uint32_t size = info[1].As<Napi::Number>().Uint32Value();
+  Napi::Buffer<char> buffer = info[2].As<Napi::Buffer<char>>();
+  Napi::Array cksumsArr = info[3].As<Napi::Array>();
+  if (!lossless) {
+    Napi::RangeError::New(env, "Offset out of bounds").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  std::vector<uint32_t> cksums;
+  for (uint32_t i = 0; i < cksumsArr.Length(); ++i) {
+    cksums.push_back(cksumsArr.Get(i).As<Napi::Number>().Uint32Value());
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FilePgWriteHandler(env, deferred, buffer, cksums);
+
+  XrdCl::XRootDStatus status =
+      this->file_->PgWrite(offset, size, buffer.Data(), handler->GetCksums(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::Fcntl(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsBuffer()) {
+    Napi::TypeError::New(env, "Fcntl expects a Buffer").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Buffer<char> buf = info[0].As<Napi::Buffer<char>>();
+
+  XrdCl::Buffer xrdBuf;
+  xrdBuf.FromString(std::string(buf.Data(), buf.Length()));
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSBufferHandler(env, deferred, "Fcntl");
+  XrdCl::XRootDStatus status = this->file_->Fcntl(xrdBuf, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::GetProperty(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsString()) {
+    Napi::TypeError::New(env, "GetProperty expects a property name string")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  std::string name = info[0].As<Napi::String>().Utf8Value();
+  std::string value;
+  bool ok = file_->GetProperty(name, value);
+  if (ok) return Napi::String::New(env, value);
+  return env.Undefined();
 }
 
 Napi::Value XrdNodeFile::SetProperty(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString()) {
+    Napi::TypeError::New(env, "SetProperty expects name and value strings")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  std::string name = info[0].As<Napi::String>().Utf8Value();
+  std::string value = info[1].As<Napi::String>().Utf8Value();
+  bool ok = file_->SetProperty(name, value);
+  return Napi::Boolean::New(env, ok);
 }
 
 Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsObject() || info[0].IsArray()) {
+    Napi::TypeError::New(env, "SetXAttr expects an object (Record<string, string>)")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  
+  Napi::Object obj = info[0].As<Napi::Object>();
+  Napi::Array keys = obj.GetPropertyNames();
+  std::vector<XrdCl::xattr_t> attrs;
+  
+  for (uint32_t i = 0; i < keys.Length(); i++) {
+    Napi::Value key = keys.Get(i);
+    Napi::Value val = obj.Get(key);
+    if (!key.IsString() || !val.IsString()) {
+      Napi::TypeError::New(env, "SetXAttr expects string keys and values")
+          .ThrowAsJavaScriptException();
+      return env.Null();
+    }
+    attrs.push_back(std::make_tuple(key.As<Napi::String>().Utf8Value(), val.As<Napi::String>().Utf8Value()));
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSXAttrStatusHandler(env, deferred, "SetXAttr");
+  auto status = this->file_->SetXAttr(attrs, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::GetXAttr(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsArray()) {
+    Napi::TypeError::New(env, "GetXAttr expects an array of strings")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  
+  Napi::Array arr = info[0].As<Napi::Array>();
+  std::vector<std::string> attrs;
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value val = arr.Get(i);
+    if (!val.IsString()) {
+      Napi::TypeError::New(env, "GetXAttr expects an array of strings")
+          .ThrowAsJavaScriptException();
+      return env.Null();
+    }
+    attrs.push_back(val.As<Napi::String>().Utf8Value());
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSXAttrDataHandler(env, deferred, "GetXAttr");
+  auto status = this->file_->GetXAttr(attrs, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::DelXAttr(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  if (info.Length() < 1 || !info[0].IsArray()) {
+    Napi::TypeError::New(env, "DelXAttr expects an array of strings").ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Array arr = info[0].As<Napi::Array>();
+  std::vector<std::string> attrs;
+  for (uint32_t i = 0; i < arr.Length(); i++) {
+    Napi::Value item = arr.Get(i);
+    if (item.IsString()) {
+      attrs.push_back(item.As<Napi::String>().Utf8Value());
+    }
+  }
+
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSXAttrStatusHandler(env, deferred, "DelXAttr");
+  XrdCl::XRootDStatus status = this->file_->DelXAttr(attrs, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::ListXAttr(const Napi::CallbackInfo& info) {
-  // TODO
-  return Napi::Value();
+  Napi::Env env = info.Env();
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FSXAttrDataHandler(env, deferred, "ListXAttr");
+  auto status = this->file_->ListXAttr(handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
