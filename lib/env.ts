@@ -380,6 +380,7 @@ class XRootDEnvironment {
   /**
    * 设置字符串配置项，返回是否设置成功。
    */
+  putString<Key extends XRootDEnvConfigStringKey | XRootDEnvConfigBoolKey>(key: Key, strVal: XRootDEnvConfig[Key]): boolean;
   putString(key: XRootDEnvConfigStringKey | XRootDEnvConfigBoolKey, strVal: string): boolean {
     if (key === 'SecProtocol') {
       process.env.XrdSecPROTOCOL = strVal;

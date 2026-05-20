@@ -93,7 +93,8 @@ jobs:
           
       - name: Running Node Test
         run: |
-          node --test test/*.ts
+          node --test test/*.ts > log.txt
+          tail -n 100 log.txt
 
       - name: Upload Server Logs on Failure
         # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题
@@ -101,4 +102,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xrootd-server-log-${{ matrix.name }}-${{ matrix.arch }}
-          path: xrootd-server.log
+          path: |
+            xrootd-server.log
+            log.txt

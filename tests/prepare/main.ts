@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { generateRandomFile } from "./dump.ts";
-const PWD = import.meta.dirname;
+const PWD = import.meta.dirname + "/..";
 
 
 mkdirSync(PWD + "/tmp", { recursive: true });

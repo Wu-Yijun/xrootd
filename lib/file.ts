@@ -16,6 +16,7 @@ import {
   AccessMode,
 } from './enums.ts';
 
+type Combined = number & {};
 
 /**
  * XRootD File 客户端
@@ -48,8 +49,8 @@ export class File {
    */
   async open(
     url: string,
-    flags: OpenFlags = OpenFlags.None,
-    mode: AccessMode = AccessMode.None,
+    flags: OpenFlags | Combined = OpenFlags.None,
+    mode: AccessMode | Combined = AccessMode.None,
   ): Promise<void> {
     return this._internal.Open(url, flags, mode);
   }

@@ -209,7 +209,6 @@ jobs:
         
     - name: Run Tests
       run: |
-        pnpm install --save-dev tsx # ensure Node20 able to run tsx
         pnpm test:prepare
         pnpm test --import tsx
 
