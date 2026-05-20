@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from 'node:test';
 import { copyFileSync } from 'node:fs';
-import { AccessMode, FileSystem, MkDirFlags, OpenFlags } from "../dist/index.mjs";
+import { AccessMode, FileSystem, MkDirFlags, OpenFlags } from "xrootd";
 import { PWD, SERVER_URL, testAlive } from "./env.mjs";
 
 if (!await testAlive()) process.exit(1);
