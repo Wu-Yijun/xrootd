@@ -79,12 +79,63 @@ export class File {
   }
 
   /**
-   * 写入文件块
+   * 写入文件块 (Buffer 写入)
    * @param offset 偏移量
    * @param buffer 要写入的数据
    */
-  async write(offset: bigint | number, buffer: Buffer): Promise<void> {
-    return this._internal.Write(BigInt(offset), buffer);
+  async write(offset: bigint | number, buffer: Buffer): Promise<void>;
+  /**
+   * 从本地 fd 写入文件块
+   * @param offset 写入的起始字节偏移量。
+   * @param size 写入大小。
+   * @param fd 本地文件描述符 (fd)。
+   * @param fdoff 可选，从本地 fd 中读取的起始偏移。
+   */
+  async write(
+    offset: bigint | number,
+    size: number,
+    fd: number,
+    fdoff?: bigint | number,
+  ): Promise<void>;
+  async write(
+    offset: bigint | number,
+    arg1: Buffer | number,
+    arg2?: number,
+    arg3?: bigint | number,
+  ): Promise<void> {
+    if (Buffer.isBuffer(arg1)) {
+      return this._internal.Write(BigInt(offset), arg1);
+    } else if (typeof arg1 === "number" && typeof arg2 === "number") {
+      return this._internal.WriteFd(
+        BigInt(offset),
+        arg1,
+        arg2,
+        arg3 !== undefined ? BigInt(arg3) : undefined,
+      );
+    } else {
+      throw new TypeError("Invalid arguments for write");
+    }
+  }
+
+  /**
+   * 从本地 fd 写入文件块 (直接映射)
+   * @param offset 写入的起始字节偏移量。
+   * @param size 写入大小。
+   * @param fd 本地文件描述符 (fd)。
+   * @param fdoff 可选，从本地 fd 中读取的起始偏移。
+   */
+  async writeFd(
+    offset: bigint | number,
+    size: number,
+    fd: number,
+    fdoff?: bigint | number,
+  ): Promise<void> {
+    return this._internal.WriteFd(
+      BigInt(offset),
+      size,
+      fd,
+      fdoff !== undefined ? BigInt(fdoff) : undefined,
+    );
   }
 
   /**

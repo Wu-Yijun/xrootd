@@ -28,6 +28,7 @@ Napi::Object XrdNodeFile::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("Stat", &XrdNodeFile::Stat),
        InstanceMethod("Read", &XrdNodeFile::Read),
        InstanceMethod("Write", &XrdNodeFile::Write),
+       InstanceMethod("WriteFd", &XrdNodeFile::WriteFd),
        InstanceMethod("Sync", &XrdNodeFile::Sync),
        InstanceMethod("Truncate", &XrdNodeFile::Truncate),
        InstanceMethod("PreRead", &XrdNodeFile::PreRead),
@@ -294,8 +295,8 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
 
 Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
-  if (info.Length() < 2) {
-    Napi::TypeError::New(env, "Write expects offset and buffer/fd").ThrowAsJavaScriptException();
+  if (info.Length() < 2 || !info[0].IsBigInt() || !info[1].IsBuffer()) {
+    Napi::TypeError::New(env, "Write expects offset (bigint) and buffer (Buffer)").ThrowAsJavaScriptException();
     return env.Null();
   }
 
@@ -307,48 +308,59 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
     return env.Null();
   }
 
-  // fd overload: Write(offset, size, fd, [fdoff])
-  if (info[1].IsNumber() && info.Length() >= 3) {
-    uint32_t size = info[1].As<Napi::Number>().Uint32Value();
-    int fd = info[2].As<Napi::Number>().Int32Value();
-    
-    XrdCl::Optional<uint64_t> fdoff;
-    if (info.Length() >= 4 && info[3].IsBigInt()) {
-      bool fdoff_lossless;
-      fdoff = info[3].As<Napi::BigInt>().Uint64Value(&fdoff_lossless);
-      if (!fdoff_lossless) {
-        Napi::TypeError::New(env, "fdoff value is out of bounds for uint64_t").ThrowAsJavaScriptException();
-        return env.Null();
-      }
-    }
-    
-    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-    auto* handler = new FileControlHandler(env, deferred, "WriteFD");
-    auto status = this->file_->Write(offset, size, fdoff, fd, handler);
-    if (!status.IsOK()) {
-      Napi::Error err = XrdNode::Utils::StatusToError(env, status);
-      deferred.Reject(err.Value());
-      delete handler;
-    }
-    return deferred.Promise();
+  Napi::Buffer<char> jsBuffer = info[1].As<Napi::Buffer<char>>();
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
+  auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
+}
+
+Napi::Value XrdNodeFile::WriteFd(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info.Length() < 3 || !info[0].IsBigInt() || !info[1].IsNumber() || !info[2].IsNumber()) {
+    Napi::TypeError::New(env, "WriteFd expects offset (bigint), size (number), and fd (number)").ThrowAsJavaScriptException();
+    return env.Null();
   }
 
-  // buffer overload: Write(offset, buffer)
-  if (info[1].IsBuffer()) {
-    Napi::Buffer<char> jsBuffer = info[1].As<Napi::Buffer<char>>();
-    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
-    auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
-    auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
-    if (!status.IsOK()) {
-      Napi::Error err = XrdNode::Utils::StatusToError(env, status);
-      deferred.Reject(err.Value());
-      delete handler;
-    }
-    return deferred.Promise();
+  bool lossless;
+  uint64_t offset = info[0].As<Napi::BigInt>().Uint64Value(&lossless);
+  if (!lossless) {
+    Napi::TypeError::New(env, "Offset value is out of bounds for uint64_t")
+        .ThrowAsJavaScriptException();
+    return env.Null();
   }
 
-  Napi::TypeError::New(env, "Invalid arguments for Write").ThrowAsJavaScriptException();
-  return env.Null();
+  uint32_t size = info[1].As<Napi::Number>().Uint32Value();
+  int fd = info[2].As<Napi::Number>().Int32Value();
+  
+  XrdCl::Optional<uint64_t> fdoff;
+  if (info.Length() >= 4 && !info[3].IsUndefined() && !info[3].IsNull()) {
+    if (!info[3].IsBigInt()) {
+      Napi::TypeError::New(env, "fdoff must be a bigint").ThrowAsJavaScriptException();
+      return env.Null();
+    }
+    bool fdoff_lossless;
+    fdoff = info[3].As<Napi::BigInt>().Uint64Value(&fdoff_lossless);
+    if (!fdoff_lossless) {
+      Napi::TypeError::New(env, "fdoff value is out of bounds for uint64_t").ThrowAsJavaScriptException();
+      return env.Null();
+    }
+  }
+  
+  Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+  auto* handler = new FileControlHandler(env, deferred, "WriteFD");
+  auto status = this->file_->Write(offset, size, fdoff, fd, handler);
+  if (!status.IsOK()) {
+    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    deferred.Reject(err.Value());
+    delete handler;
+  }
+  return deferred.Promise();
 }
 
 Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo& info) {

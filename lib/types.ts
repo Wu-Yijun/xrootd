@@ -114,6 +114,7 @@ export interface INativeFile {
   Stat(): Promise<StatInfo>;
   Read(offset: bigint, size: number): Promise<Buffer>;
   Write(offset: bigint, buffer: Buffer): Promise<void>;
+  WriteFd(offset: bigint, size: number, fd: number, fdoff?: bigint): Promise<void>;
   Sync(): Promise<void>;
   Truncate(size: bigint): Promise<void>;
   IsOpen(): boolean; // 同步方法
