@@ -88,7 +88,7 @@ jobs:
           
       - name: Prepare Tests
         run: |
-          node tests/pretest/main.ts
+          node tests/prepare/main.ts
           if [ "$(id -u)" = "0" ]; then
             # 确保后续你的测试脚本 (root 身份) 跑完后，还有权限去清理或读取这些文件
             chmod -R 777 tests/tmp
