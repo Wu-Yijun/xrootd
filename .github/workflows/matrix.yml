@@ -98,7 +98,7 @@ jobs:
           
       - name: Running Node Test
         run: |
-          node --test test/*.ts > log.txt
+          node --test tests/*.ts > log.txt
           tail -n 100 log.txt
 
       - name: Upload Server Logs on Failure
