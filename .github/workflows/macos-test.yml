@@ -210,7 +210,7 @@ jobs:
     - name: Run Tests
       run: |
         pnpm test:prepare
-        pnpm test --import tsx
+        pnpm test
 
     - name: Upload Server Logs on Failure
       # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题
