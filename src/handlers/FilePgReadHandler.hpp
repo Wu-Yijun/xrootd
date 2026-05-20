@@ -66,7 +66,7 @@ class FilePgReadHandler : public XrdCl::ResponseHandler {
 
             this->deferred_.Resolve(result);
           } else {
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

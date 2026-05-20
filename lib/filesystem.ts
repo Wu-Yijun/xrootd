@@ -9,7 +9,6 @@ import type {
   StatVFSInfo,
   DirListEntry,
   XAttrStatusResult,
-  IXRootDError
 } from './types.ts';
 import {
   MkDirFlags,
@@ -274,8 +273,12 @@ export class FileSystem {
    * @param targetPath 目标路径
    * @param attrs 扩展属性键值对记录
    */
-  async setXAttr(targetPath: string, attrs: Record<string, string>): Promise<XAttrStatusResult[]> {
+  async setXAttrs(targetPath: string, attrs: Record<string, string>): Promise<XAttrStatusResult[]> {
     return this._internal.SetXAttr(this._normalize(targetPath), attrs);
+  }
+  async setXAttr(targetPath: string, key: string, value: string): Promise<boolean> {
+    const ret = await this.setXAttrs(targetPath, { [key]: value });
+    return ret[0].ok;
   }
 
   /**
@@ -283,8 +286,12 @@ export class FileSystem {
    * @param targetPath 目标路径
    * @param keys 需要获取的属性名数组
    */
-  async getXAttr(targetPath: string, keys: string[]): Promise<Record<string, string>> {
+  async getXAttrs(targetPath: string, keys: string[]): Promise<Record<string, string>> {
     return this._internal.GetXAttr(this._normalize(targetPath), keys);
+  }
+  async getXAttr(targetPath: string, key: string): Promise<string> {
+    const ret = await this.getXAttrs(targetPath, [key]);
+    return ret[key];
   }
 
   /**
@@ -292,8 +299,12 @@ export class FileSystem {
    * @param targetPath 目标路径
    * @param keys 需要删除的属性名数组
    */
-  async delXAttr(targetPath: string, keys: string[]): Promise<XAttrStatusResult[]> {
+  async delXAttrs(targetPath: string, keys: string[]): Promise<XAttrStatusResult[]> {
     return this._internal.DelXAttr(this._normalize(targetPath), keys);
+  }
+  async delXAttr(targetPath: string, key: string): Promise<boolean> {
+    const ret = await this.delXAttrs(targetPath, [key]);
+    return ret[0].ok;
   }
 
   /**

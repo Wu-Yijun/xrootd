@@ -70,7 +70,7 @@ Napi::Value XrdNodeFileSystem::Locate(const Napi::CallbackInfo& info) {
   FSLocateHandler* handler = new FSLocateHandler(env, deferred, "Locate");
   auto status = this->fs_->Locate(path, flags, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -89,7 +89,7 @@ Napi::Value XrdNodeFileSystem::DeepLocate(const Napi::CallbackInfo& info) {
   FSLocateHandler* handler = new FSLocateHandler(env, deferred, "DeepLocate");
   auto status = this->fs_->DeepLocate(path, flags, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -107,7 +107,7 @@ Napi::Value XrdNodeFileSystem::Mv(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "Mv");
   auto status = this->fs_->Mv(source, dest, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -128,7 +128,7 @@ Napi::Value XrdNodeFileSystem::Query(const Napi::CallbackInfo& info) {
   FSBufferHandler* handler = new FSBufferHandler(env, deferred, "Query");
   auto status = this->fs_->Query(code, xrdBuf, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -152,7 +152,7 @@ Napi::Value XrdNodeFileSystem::Truncate(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "Truncate");
   auto status = this->fs_->Truncate(path, size, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -169,7 +169,7 @@ Napi::Value XrdNodeFileSystem::Rm(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "Rm");
   auto status = this->fs_->Rm(path, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -190,7 +190,7 @@ Napi::Value XrdNodeFileSystem::MkDir(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "MkDir");
   auto status = this->fs_->MkDir(path, flags, mode, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -207,7 +207,7 @@ Napi::Value XrdNodeFileSystem::RmDir(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "RmDir");
   auto status = this->fs_->RmDir(path, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -226,7 +226,7 @@ Napi::Value XrdNodeFileSystem::ChMod(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "ChMod");
   auto status = this->fs_->ChMod(path, mode, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -242,7 +242,7 @@ Napi::Value XrdNodeFileSystem::Ping(const Napi::CallbackInfo& info) {
   FSControlHandler* handler = new FSControlHandler(env, deferred, "Ping");
   auto status = this->fs_->Ping(handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -264,7 +264,7 @@ Napi::Value XrdNodeFileSystem::Stat(const Napi::CallbackInfo& info) {
   // 3. 调用底层的异步方法，瞬间返回！
   auto status = this->fs_->Stat(path, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;  // [FIXED] 触发析构，安全 Release TSFN，防止事件循环卡死
     return deferred.Promise();
@@ -282,7 +282,7 @@ Napi::Value XrdNodeFileSystem::StatVFS(const Napi::CallbackInfo& info) {
   FSStatVFSHandler* handler = new FSStatVFSHandler(env, deferred);
   auto status = this->fs_->StatVFS(path, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -306,7 +306,7 @@ Napi::Value XrdNodeFileSystem::DirList(const Napi::CallbackInfo& info) {
   FSDirListHandler* handler = new FSDirListHandler(env, deferred);
   auto status = this->fs_->DirList(path, flags, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -323,7 +323,7 @@ Napi::Value XrdNodeFileSystem::SendInfo(const Napi::CallbackInfo& info) {
   FSBufferHandler* handler = new FSBufferHandler(env, deferred, "SendInfo");
   auto status = this->fs_->SendInfo(infoStr, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -348,7 +348,7 @@ Napi::Value XrdNodeFileSystem::Prepare(const Napi::CallbackInfo& info) {
   FSBufferHandler* handler = new FSBufferHandler(env, deferred, "Prepare");
   auto status = this->fs_->Prepare(fileList, flags, priority, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -365,7 +365,7 @@ Napi::Value XrdNodeFileSystem::SendCache(const Napi::CallbackInfo& info) {
   FSBufferHandler* handler = new FSBufferHandler(env, deferred, "SendCache");
   auto status = this->fs_->SendCache(infoStr, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -404,7 +404,7 @@ Napi::Value XrdNodeFileSystem::SetXAttr(const Napi::CallbackInfo& info) {
   FSXAttrStatusHandler* handler = new FSXAttrStatusHandler(env, deferred, "SetXAttr");
   auto status = this->fs_->SetXAttr(path, attrs, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -427,7 +427,7 @@ Napi::Value XrdNodeFileSystem::GetXAttr(const Napi::CallbackInfo& info) {
   FSXAttrDataHandler* handler = new FSXAttrDataHandler(env, deferred, "GetXAttr");
   auto status = this->fs_->GetXAttr(path, keys, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -450,7 +450,7 @@ Napi::Value XrdNodeFileSystem::DelXAttr(const Napi::CallbackInfo& info) {
   FSXAttrStatusHandler* handler = new FSXAttrStatusHandler(env, deferred, "DelXAttr");
   auto status = this->fs_->DelXAttr(path, keys, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -467,7 +467,7 @@ Napi::Value XrdNodeFileSystem::ListXAttr(const Napi::CallbackInfo& info) {
   FSXAttrDataHandler* handler = new FSXAttrDataHandler(env, deferred, "ListXAttr");
   auto status = this->fs_->ListXAttr(path, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();

@@ -9,7 +9,7 @@ export interface CopyJobConfig {
     makeDir?: boolean;
     chunkSize?: number;
     parallelChunks?: number;
-    [key: string]: any;
+    [key: string]: any; // TODO
 }
 
 export interface CopyJobResult {
@@ -17,7 +17,7 @@ export interface CopyJobResult {
     sourceCheckSum?: string;
     targetCheckSum?: string;
     realTarget?: string;
-    [key: string]: any;
+    [key: string]: any; // TODO
 }
 
 export type ProgressCallback = (jobNum: number, processed: number, total: number) => void;

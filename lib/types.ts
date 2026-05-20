@@ -6,12 +6,22 @@
 
 export type PropertyList = Record<string, string | number | boolean>;
 
-export interface IXRootDError extends Error {
+interface IXRootDError extends Error {
   xrdStatus: number;
   xrdCode: number;
-  xrdErrNo:number;
+  xrdErrNo: number;
   xrdErrMsg: string;
 }
+
+export type XRootDOkError = { ok: true; } | ({ ok: false } & IXRootDError);
+
+export type XAttrStatusResult = {
+  ok: true;
+  name: string;
+} | ({
+  ok: false;
+  name: string;
+} & IXRootDError);
 
 export interface StatInfo {
   id: string;             // GetId()
@@ -20,14 +30,14 @@ export interface StatInfo {
   modTime: number;        // GetModTime()
   accessTime: number;     // GetAccessTime()
   changeTime: number;     // GetChangeTime()
-  
+
   // 字符串格式的时间和权限，方便 JS 层直接展示，不用自己转 format
   modTimeAsString: string;    // GetModTimeAsString()
   accessTimeAsString: string; // GetAccessTimeAsString()
   changeTimeAsString: string; // GetChangeTimeAsString()
   modeAsString: string;       // GetModeAsString()
   modeAsOctString: string;    // GetModeAsOctString()
-  
+
   owner: string;          // GetOwner()
   group: string;          // GetGroup()
   checksum: string;       // GetChecksum()
@@ -46,7 +56,6 @@ export interface StatInfo {
 }
 
 export interface LocationInfo {
-  // [FIXED: 修正与 C++ FSLocateHandler 返回结构不符的问题。原字段为 host, port, isWritable, type]
   address: string;    // 例如 "host:port"
   type: number;       // XrdCl::LocationInfo::Location::Type 枚举值
   accessType: number; // XrdCl::Access::Type 枚举值
@@ -65,7 +74,6 @@ export interface ReadChunkRequest {
 
 
 export interface StatVFSInfo {
-  // [FIXED: 修正与 C++ FSStatVFSHandler 返回结构不符的问题。原字段为 freeBlocks/totalBlocks 等]
   nodesRW: bigint;
   freeRW: bigint;
   utilizationRW: number;
@@ -75,24 +83,22 @@ export interface StatVFSInfo {
 }
 
 export interface DirListEntry {
-  // [FIXED: 新增目录项结构定义，与 C++ FSDirListHandler 返回结构对齐]
   name: string;
   hostAddress: string;
   stat: StatInfo | null;
 }
 
-export interface XAttrStatusResult {
-  // [FIXED: 新增扩展属性操作状态结构定义，与 C++ FSXAttrStatusHandler 返回结构对齐]
-  name: string;
-  isOk: boolean;
-  code: number;
-  message: string;
-}
 
 export class XRootDError extends Error {
   code: number;
   status: number;
-  constructor(status: IXRootDError) {
+  constructor(status: XRootDOkError) {
+    if (status.ok) {
+      super("throw Unexpected Ok as Errpr");
+      this.code = -1;
+      this.status = -1;
+      return;
+    }
     super(status.message);
     // TODO...
     this.code = status.xrdCode;

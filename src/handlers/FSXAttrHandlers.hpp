@@ -51,18 +51,14 @@ class FSXAttrStatusHandler : public XrdCl::ResponseHandler {
 
             for (uint32_t i = 0; i < size; ++i) {
               const auto& item = (*statusList)[i];
-              Napi::Object obj = Napi::Object::New(env);
+              Napi::Object obj = Utils::StatusToOkError(env, item.status).Value();
               obj.Set("name", Napi::String::New(env, item.name));
-              obj.Set("isOk", Napi::Boolean::New(env, item.status.IsOK()));
-              obj.Set("code", Napi::Number::New(env, static_cast<uint32_t>(item.status.code)));
-              obj.Set("message", Napi::String::New(env, item.status.GetErrorMessage()));
-
               arr.Set(i, obj);
             }
 
             this->deferred_.Resolve(arr);
           } else {
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 
@@ -124,7 +120,7 @@ class FSXAttrDataHandler : public XrdCl::ResponseHandler {
             Napi::Object obj = Utils::XAttrVectorToObject(env, *attrList);
             this->deferred_.Resolve(obj);
           } else {
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

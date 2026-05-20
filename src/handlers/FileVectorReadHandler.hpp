@@ -77,7 +77,7 @@ class FileVectorReadHandler : public XrdCl::ResponseHandler {
           } else {
             // 失败时依然报错。我们不需要做 this->chunks_transferred_ = true，
             // 因为在 ~FileVectorReadHandler 中会自动清理。
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

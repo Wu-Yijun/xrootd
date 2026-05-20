@@ -460,7 +460,7 @@ class XRootDEnvironment {
     if (key === 'SecProtocol') {
       return process.env.XrdSecPROTOCOL ?? process.env.XRD_SECPROTOCOL ?? undefined;
     }
-    return nativeAddon.Env.GetInt(key as any) ?? nativeAddon.Env.GetString(key as any) ?? undefined;
+    return nativeAddon.Env.GetInt(key) ?? nativeAddon.Env.GetString(key) ?? undefined;
   }
 }
 

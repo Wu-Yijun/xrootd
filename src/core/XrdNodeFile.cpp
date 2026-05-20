@@ -152,7 +152,7 @@ Napi::Value XrdNodeFile::Open(const Napi::CallbackInfo& info) {
 
   if (!status.IsOK()) {  // TODO: discuss
     // 如果发起异步请求本身就失败了（例如本地状态错误），立即销毁 handler 并 Reject
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -174,7 +174,7 @@ Napi::Value XrdNodeFile::Close(const Napi::CallbackInfo& info) {
   XrdCl::XRootDStatus status = this->file_->Close(handler);
 
   if (!status.IsOK()) {  // TODO: discuss
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -237,7 +237,7 @@ Napi::Value XrdNodeFile::Clone(const Napi::CallbackInfo& info) {
   XrdCl::XRootDStatus status = this->file_->Clone(locs, handler);
 
   if (!status.IsOK()) {  // TODO: discuss
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -256,7 +256,7 @@ Napi::Value XrdNodeFile::Stat(const Napi::CallbackInfo& info) {
   auto* handler = new AsyncStatHandler(env, deferred);
   auto status = this->file_->Stat(force, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -284,7 +284,7 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
   // 瞬间异步调用，将 C++ 分配的 buffer_ 指针传进去
   auto status = this->file_->Read(offset, size, handler->GetBuffer(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
     return deferred.Promise();
@@ -314,7 +314,7 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   auto* handler = new FileWriteHandler(env, deferred, jsBuffer);
   auto status = this->file_->Write(offset, jsBuffer.Length(), jsBuffer.Data(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -359,7 +359,7 @@ Napi::Value XrdNodeFile::WriteFd(const Napi::CallbackInfo& info) {
   auto* handler = new FileControlHandler(env, deferred, "WriteFD");
   auto status = this->file_->Write(offset, size, fdoff, fd, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -372,7 +372,7 @@ Napi::Value XrdNodeFile::Sync(const Napi::CallbackInfo& info) {
   auto* handler = new FileControlHandler(env, deferred, "Sync");
   XrdCl::XRootDStatus status = this->file_->Sync(handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -392,7 +392,7 @@ Napi::Value XrdNodeFile::Truncate(const Napi::CallbackInfo& info) {
   auto* handler = new FileControlHandler(env, deferred, "Truncate");
   XrdCl::XRootDStatus status = this->file_->Truncate(size, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -425,7 +425,7 @@ Napi::Value XrdNodeFile::PreRead(const Napi::CallbackInfo& info) {
   auto* handler = new FileControlHandler(env, deferred, "PreRead");
   XrdCl::XRootDStatus status = this->file_->PreRead(tracts, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -438,7 +438,7 @@ Napi::Value XrdNodeFile::Visa(const Napi::CallbackInfo& info) {
   auto* handler = new FSBufferHandler(env, deferred, "Visa");
   XrdCl::XRootDStatus status = this->file_->Visa(handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -474,7 +474,7 @@ Napi::Value XrdNodeFile::VectorRead(const Napi::CallbackInfo& info) {
 
   XrdCl::XRootDStatus status = this->file_->VectorRead(handler->GetChunkList(), nullptr, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -514,7 +514,7 @@ Napi::Value XrdNodeFile::VectorWrite(const Napi::CallbackInfo& info) {
 
   XrdCl::XRootDStatus status = this->file_->VectorWrite(handler->GetChunkList(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -552,7 +552,7 @@ Napi::Value XrdNodeFile::WriteV(const Napi::CallbackInfo& info) {
   std::vector<struct iovec>& iovs = handler->GetIovecList();
   XrdCl::XRootDStatus status = this->file_->WriteV(offset, iovs.data(), iovs.size(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -585,7 +585,7 @@ Napi::Value XrdNodeFile::PgRead(const Napi::CallbackInfo& info) {
 
   XrdCl::XRootDStatus status = this->file_->PgRead(offset, size, handler->GetBuffer(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -620,7 +620,7 @@ Napi::Value XrdNodeFile::PgWrite(const Napi::CallbackInfo& info) {
   XrdCl::XRootDStatus status =
       this->file_->PgWrite(offset, size, buffer.Data(), handler->GetCksums(), handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -642,7 +642,7 @@ Napi::Value XrdNodeFile::Fcntl(const Napi::CallbackInfo& info) {
   auto* handler = new FSBufferHandler(env, deferred, "Fcntl");
   XrdCl::XRootDStatus status = this->file_->Fcntl(xrdBuf, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -705,7 +705,7 @@ Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
   auto* handler = new FSXAttrStatusHandler(env, deferred, "SetXAttr");
   auto status = this->file_->SetXAttr(attrs, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -735,7 +735,7 @@ Napi::Value XrdNodeFile::GetXAttr(const Napi::CallbackInfo& info) {
   auto* handler = new FSXAttrDataHandler(env, deferred, "GetXAttr");
   auto status = this->file_->GetXAttr(attrs, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -761,7 +761,7 @@ Napi::Value XrdNodeFile::DelXAttr(const Napi::CallbackInfo& info) {
   auto* handler = new FSXAttrStatusHandler(env, deferred, "DelXAttr");
   XrdCl::XRootDStatus status = this->file_->DelXAttr(attrs, handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }
@@ -774,7 +774,7 @@ Napi::Value XrdNodeFile::ListXAttr(const Napi::CallbackInfo& info) {
   auto* handler = new FSXAttrDataHandler(env, deferred, "ListXAttr");
   auto status = this->file_->ListXAttr(handler);
   if (!status.IsOK()) {
-    Napi::Error err = XrdNode::Utils::StatusToError(env, status);
+    Napi::Error err = XrdNode::Utils::StatusToOkError(env, status);
     deferred.Reject(err.Value());
     delete handler;
   }

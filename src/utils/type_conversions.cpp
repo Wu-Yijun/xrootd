@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "napi.h"
+
 namespace XrdNode {
 namespace Utils {
 
@@ -52,12 +54,19 @@ Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list
 // ============================================================================
 // 3. Status 转换
 // 目标: 将底层的 XRootDStatus 封装为带有自定义属性的 JS Error 对象
+// 如果状态是 OK，则直接返回空的 Error。
+// 只有当状态不是 OK 时，才会在 Error 对象上添加详细的错误信息。
 // ============================================================================
-Napi::Error StatusToError(Napi::Env env, const XrdCl::XRootDStatus& status) {
+Napi::Error StatusToOkError(Napi::Env env, const XrdCl::XRootDStatus& status) {
   // 实例化基础的 Napi::Error
   Napi::Error err = Napi::Error::New(env, status.ToString());
   // 3. 提取底层状态码并挂载到 Error 对象上
   Napi::Object errObj = err.Value();
+  bool is_ok = status.IsOK();
+  errObj.Set("ok", Napi::Boolean::New(env, is_ok));
+  if (is_ok) {
+    return err;
+  }
   // status.status:  0: Ok, 1: error, 2: fatal
   errObj.Set("xrdStatus", Napi::Number::New(env, static_cast<uint32_t>(status.status)));
   // status.code 对应具体的协议状态码

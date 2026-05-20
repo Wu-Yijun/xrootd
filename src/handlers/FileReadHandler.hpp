@@ -75,7 +75,7 @@ class FileReadHandler : public XrdCl::ResponseHandler {
             this->deferred_.Resolve(jsBuffer);
           } else {
             // 如果失败，防泄漏，析构中也会处理
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

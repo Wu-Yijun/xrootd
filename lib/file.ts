@@ -8,14 +8,14 @@ import type {
   StatInfo,
   ReadStreamOptions,
   WriteStreamOptions,
-  CloneLocationRequest
+  CloneLocationRequest,
+  XAttrStatusResult
 } from "./types.ts";
 import {
   OpenFlags,
   AccessMode,
 } from './enums.ts';
 
-type TODO = any; // to disable tsc check
 
 /**
  * XRootD File 客户端
@@ -163,13 +163,16 @@ export class File {
   // ==========================================================================
   // 扩展属性接口 (XAttr & Properties)
   // ==========================================================================
-
   async getProperty(name: string): Promise<string> {
-    return this._internal.GetProperty(name) as TODO;
+    const ret = this._internal.GetProperty(name);
+    if (ret.success) {
+      return ret.value;
+    }
+    throw new Error("TODO");
   }
 
-  async setProperty(name: string, value: string): Promise<void> {
-    return this._internal.SetProperty(name, value) as TODO;
+  async setProperty(name: string, value: string): Promise<boolean> {
+    return this._internal.SetProperty(name, value);
   }
   // ==========================================================================
   // 向量化/块读取 (高性能 I/O)
@@ -209,29 +212,44 @@ export class File {
   /**
    * 设置文件的扩展属性
    */
-  async setXAttr(name: string, value: string): Promise<void> {
-    return this._internal.SetXAttr(name as TODO) as TODO;
+  async setXAttrs(attrs: Record<string, string>): Promise<XAttrStatusResult[]> {
+    return this._internal.SetXAttr(attrs);
+  }
+  /**
+   * 设置文件的扩展属性
+   */
+  async setXAttr(key: string, value: string): Promise<boolean> {
+    const ret = await this._internal.SetXAttr({ [key]: value });
+    return ret[0].ok;
   }
 
   /**
    * 获取文件的扩展属性
    */
-  async getXAttr(name: string): Promise<string> {
-    return this._internal.GetXAttr(name as TODO) as TODO;
+  async getXAttrs(keys: string[]): Promise<Record<string, string>> {
+    return this._internal.GetXAttr(keys);
+  }
+  async getXAttr(key: string): Promise<string> {
+    const ret = await this._internal.GetXAttr([key]);
+    return ret[key];
   }
 
   /**
    * 删除文件的扩展属性
    */
-  async delXAttr(name: string): Promise<void> {
-    return this._internal.DelXAttr(name as TODO) as TODO;
+  async delXAttrs(keys: string[]): Promise<XAttrStatusResult[]> {
+    return this._internal.DelXAttr(keys);
+  }
+  async delXAttr(key: string): Promise<boolean> {
+    const ret = await this._internal.DelXAttr([key]);
+    return ret[0].ok;
   }
 
   /**
-   * 列出文件所有的扩展属性名称
+   * 列出文件所有的扩展属性和内容
    */
-  async listXAttr(): Promise<string[]> {
-    return this._internal.ListXAttr() as TODO;
+  async listXAttrs(): Promise<Record<string, string>> {
+    return this._internal.ListXAttr();
   }
 
   // ==========================================================================

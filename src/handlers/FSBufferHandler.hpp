@@ -47,7 +47,7 @@ class FSBufferHandler : public XrdCl::ResponseHandler {  // TODO: need check
                 Napi::Buffer<char>::Copy(env, xrdBuffer->GetBuffer(), xrdBuffer->GetSize());
             this->deferred_.Resolve(jsBuf);
           } else {
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

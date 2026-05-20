@@ -44,7 +44,7 @@ class FileControlHandler : public XrdCl::ResponseHandler {
             this->deferred_.Resolve(env.Undefined());
           } else {
             // 失败时，组装包含底层错误码的 JS Error
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 

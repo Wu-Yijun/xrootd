@@ -47,7 +47,7 @@ class FileWriteHandler : public XrdCl::ResponseHandler {
           if (status.IsOK()) {
             this->deferred_.Resolve(env.Undefined());
           } else {
-            Napi::Error err = Utils::StatusToError(env, status);
+            Napi::Error err = Utils::StatusToOkError(env, status);
             this->deferred_.Reject(err.Value());
           }
 
