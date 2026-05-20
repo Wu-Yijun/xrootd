@@ -1,5 +1,7 @@
 // lib/types.ts
 
+import { ToType, TypeDef } from "./reflects.ts";
+
 // ============================================================================
 // 1. 公共数据结构 (Public Data Structures)
 // ============================================================================
@@ -171,19 +173,79 @@ export interface INativeFileSystem {
   ListXAttr(path: string): Promise<Record<string, string>>; // [FIXED: 修正返回结构]
 }
 
+
+export interface CopyJobConfig {
+  /** original source URL */
+  source: string,
+  /** target directory or file */
+  target: string,
+  /** maximum number sources */
+  sourceLimit?: number,
+  /** overwrite target if exists */
+  force?: boolean,
+  /** persistify only on successful close */
+  posc?: boolean,
+  /** ignore locking semantics on destination */
+  coerce?: boolean,
+  /** create path to the file if it doesn't exist */
+  makeDir?: boolean,
+  /** "first" try third party copy, if it fails try normal copy; "only" only try third party copy */
+  thirdParty?: string,
+  /** "none"    - no checksumming
+      "end2end" - end to end checksumming
+      "source"  - calculate checksum at source
+      "target"  - calculate checksum at target */
+  checkSumMode?: "none" | "end2end" | "source" | "target",
+  /** type of the checksum to be used */
+  checkSumType?: string,
+  /** checksum preset */
+  checkSumPreset?: string,
+  /** size of a copy chunks in bytes */
+  chunkSize?: number,
+  /** number of chunks that should be requested in parallel
+   * 
+   * [uint8_t]
+   */
+  parallelChunks?: number,
+  /** time limit for successfull initialization of the copy job
+   * [time_t]
+   */
+  initTimeout?: number,
+  /** time limit for the actual copy to finish
+   * [time_t]
+   */
+  tpcTimeout?: number,
+  /** support for the case where the size source file may change during reading process */
+  dynamicSource?: boolean,
+};
+
+export interface CopyJobResult {
+  /** checksum at source, if requested */
+  sourceCheckSum?: string,
+  /** checksum at target, if requested */
+  targetCheckSum?: string,
+  /** file size */
+  size: bigint,
+  /** status of the copy operation */
+  status?: XRootDOkError,
+  /** all sources used */
+  sources?: string[],
+  /** the actual disk server target */
+  realTarget?: string,
+};
+
+export type ProgressCallback = (jobNum: number, processed: number, total: number) => void;
+
 /**
  * 对应 src/core/XrdNodeCopyProcess.cc 中 Init 暴露的类
  */
 export interface INativeCopyProcess {
-  AddJob(config: Record<string, any>): void;
+  AddJob(config: CopyJobConfig): void;
   Prepare(): Promise<void>;
-  Run(): Promise<any[]>;
+  Run(): Promise<CopyJobResult[]>;
   CancelJob(): void;
   // 注入 JS 回调给 C++ 的 ThreadSafeFunction 使用
-  SetEventListener(
-    eventName: string,
-    callback: (...args: any[]) => void,
-  ): void;
+  SetEventListener(eventName: string, callback: ProgressCallback): void;
 }
 
 /**
@@ -200,8 +262,6 @@ export interface XrdNativeBindings {
     GetInt(key: string): number | null;
   };
 }
-
-
 
 export interface ReadStreamOptions {
   start?: bigint;

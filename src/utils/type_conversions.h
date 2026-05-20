@@ -7,8 +7,26 @@
 namespace XrdNode {
 namespace Utils {
 
-// 将 XrdCl::PropertyList 转化为 JS Object (Record<string, any>)
-Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list);
+/**
+ * 将 JS object 安全的转化为 XrdCl::PropertyList
+ *
+ * 支持的类型:
+ * - string
+ * - number
+ * - bigint
+ * - boolean
+ * - array
+ * - object
+ */
+void JsObjectToProps(Napi::Env env, Napi::Object jsObj, XrdCl::PropertyList& props);
+
+/**
+ * 将非嵌套的PropertyList 直接写入为 js Record<string, string> (可能不安全)
+ */
+Napi::Object PropsToJsRecord(Napi::Env env, const XrdCl::PropertyList& props);
+
+// // 将 XrdCl::PropertyList 转化为 JS Object (Record<string, any>)
+// Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list);
 
 // // 将 XrdCl::AnyObject 提取并转化为合适的 Napi::Value
 // Napi::Value AnyObjectToValue(Napi::Env env, const XrdCl::AnyObject* obj);

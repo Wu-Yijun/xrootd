@@ -1,5 +1,8 @@
 #include "XrdNodeCopyProcess.h"
 
+#include "napi.h"
+#include "utils/type_conversions.h"
+
 namespace {
 
 class NodeProgressHandler : public XrdCl::CopyProgressHandler {
@@ -76,10 +79,6 @@ class CopyRunWorker : public Napi::AsyncWorker {
       Napi::Object resObj = Napi::Object::New(env);
       XrdCl::PropertyList* p = results_[i];
 
-      uint64_t size = 0;
-      if (p->Get("size", size))
-        resObj.Set("size", Napi::Number::New(env, static_cast<double>(size)));
-
       std::string srcCksm;
       if (p->Get("sourceCheckSum", srcCksm))
         resObj.Set("sourceCheckSum", Napi::String::New(env, srcCksm));
@@ -87,6 +86,24 @@ class CopyRunWorker : public Napi::AsyncWorker {
       std::string tgtCksm;
       if (p->Get("targetCheckSum", tgtCksm))
         resObj.Set("targetCheckSum", Napi::String::New(env, tgtCksm));
+
+      uint64_t size = 0;
+      if (p->Get("size", size)) resObj.Set("size", Napi::BigInt::New(env, size));
+
+      XrdCl::XRootDStatus st;
+      if (p->Get("status", st)) {
+        Napi::Error status = XrdNode::Utils::StatusToOkError(env, st);
+        resObj.Set("status", status.Value());
+      }
+
+      std::vector<std::string> sources;
+      if (p->Get("sources", sources)) {
+        Napi::Array src = Napi::Array::New(env, sources.size());
+        for (size_t j = 0; j < sources.size(); j++) {
+          src.Set(j, Napi::String::New(env, sources[j]));
+        }
+        resObj.Set("sources", src);
+      }
 
       std::string realTarget;
       if (p->Get("realTarget", realTarget))
@@ -145,11 +162,13 @@ Napi::Object XrdNodeCopyProcess::Init(Napi::Env env, Napi::Object exports) {
   Napi::Function func = DefineClass(
       env,
       "CopyProcess",
-      {InstanceMethod("AddJob", &XrdNodeCopyProcess::AddJob),
+      {// 挂载函数
+       InstanceMethod("AddJob", &XrdNodeCopyProcess::AddJob),
        InstanceMethod("Prepare", &XrdNodeCopyProcess::Prepare),
        InstanceMethod("Run", &XrdNodeCopyProcess::Run),
        InstanceMethod("CancelJob", &XrdNodeCopyProcess::CancelJob),
-       InstanceMethod("SetEventListener", &XrdNodeCopyProcess::SetEventListener)}
+       InstanceMethod("SetEventListener", &XrdNodeCopyProcess::SetEventListener)
+      }
   );
 
   exports.Set("CopyProcess", func);
@@ -182,28 +201,16 @@ Napi::Value XrdNodeCopyProcess::AddJob(const Napi::CallbackInfo& info) {
 
   Napi::Object config = info[0].As<Napi::Object>();
   XrdCl::PropertyList props;
-
-  if (config.Has("source"))
-    props.Set("source", config.Get("source").As<Napi::String>().Utf8Value());
-  if (config.Has("target"))
-    props.Set("target", config.Get("target").As<Napi::String>().Utf8Value());
-  if (config.Has("force")) props.Set("force", config.Get("force").As<Napi::Boolean>().Value());
-  if (config.Has("makeDir"))
-    props.Set("makeDir", config.Get("makeDir").As<Napi::Boolean>().Value());
-  if (config.Has("chunkSize"))
-    props.Set("chunkSize", config.Get("chunkSize").As<Napi::Number>().Uint32Value());
-  if (config.Has("parallelChunks"))
-    props.Set(
-        "parallelChunks",
-        static_cast<uint8_t>(config.Get("parallelChunks").As<Napi::Number>().Uint32Value())
-    );
+  XrdNode::Utils::JsObjectToProps(env, config, props);
 
   XrdCl::PropertyList* resultProps = new XrdCl::PropertyList();
   jobResults_.push_back(resultProps);
 
   XrdCl::XRootDStatus status = cp_->AddJob(props, resultProps);
   if (!status.IsOK()) {
-    Napi::Error::New(env, status.ToString()).ThrowAsJavaScriptException();
+    XrdNode::Utils::StatusToOkError(env, status).ThrowAsJavaScriptException();
+    // TODO: REPLACE ALL these pattern
+    // Napi::Error::New(env, status.ToString()).ThrowAsJavaScriptException();
     return env.Null();
   }
   return env.Undefined();

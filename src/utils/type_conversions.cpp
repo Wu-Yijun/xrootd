@@ -8,10 +8,60 @@
 namespace XrdNode {
 namespace Utils {
 
-// ============================================================================
-// 1. PropertyList 转换
-// 目标: 将 XRootD 的属性列表 (键值对) 转换为 JavaScript 的 Object (Record<string, string>)
-// ============================================================================
+void JsObjectToProps(Napi::Env env, Napi::Object jsObj, XrdCl::PropertyList& props) {
+  // 1. 获取 JS 对象的所有 Keys
+  Napi::Array keys = jsObj.GetPropertyNames();
+
+  // 2. 动态遍历
+  for (uint32_t i = 0; i < keys.Length(); i++) {
+    Napi::Value keyVal = keys.Get(i);
+    std::string keyStr = keyVal.As<Napi::String>().Utf8Value();
+    Napi::Value val = jsObj.Get(keyVal);
+
+    // 3. 动态类型反射与分发
+    if (val.IsString()) {
+      props.Set(keyStr, val.As<Napi::String>().Utf8Value());
+    } else if (val.IsBoolean()) {
+      props.Set(keyStr, val.As<Napi::Boolean>().Value());
+    } else if (val.IsNumber()) {
+      // 根据 CopyProcess 头文件，大部分数字配置如 sourceLimit, chunkSize 都是 uint32_t
+      props.Set(keyStr, val.As<Napi::Number>().Uint32Value());
+    } else if (val.IsBigInt()) {
+      // 对于 timeout 等可能需要 uint64_t/time_t 的字段
+      bool lossless;
+      props.Set(keyStr, val.As<Napi::BigInt>().Uint64Value(&lossless));
+    } else if (val.IsArray()) {
+      Napi::Array arr = val.As<Napi::Array>();
+      for (uint32_t j = 0; j < arr.Length(); j++) {
+        Napi::Value itemVal = arr.Get(j);
+        props.Set(keyStr, j, itemVal.As<Napi::String>().Utf8Value());
+      }
+    } else if (val.IsObject()) {
+      Napi::Object obj = val.As<Napi::Object>();
+      auto sub_prop = std::make_shared<XrdCl::PropertyList>();
+      JsObjectToProps(env, obj, *sub_prop);
+      props.Set(keyStr, sub_prop);
+    } else {
+      // Skip unknown props
+      // props.Set(keyStr, "undefined");
+    }
+  }
+}
+
+Napi::Object PropsToJsRecord(Napi::Env env, XrdCl::PropertyList& props) {
+  Napi::Object jsObj = Napi::Object::New(env);
+  for (auto it = props.begin(); it != props.end(); ++it) {
+    const std::string& key = it->first;
+    const std::string& value = it->second;
+    jsObj.Set(key, Napi::String::New(env, value));
+  }
+  return jsObj;
+}
+
+// // ============================================================================
+// // 1. PropertyList 转换 (不安全的, 不合适)
+// // 目标: 将 XRootD 的属性列表 (键值对) 转换为 JavaScript 的 Object (Record<string, string>)
+// // ============================================================================
 Napi::Object PropertyListToObject(Napi::Env env, const XrdCl::PropertyList* list) {
   Napi::Object obj = Napi::Object::New(env);
   if (!list) {

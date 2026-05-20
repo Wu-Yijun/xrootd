@@ -1,26 +1,9 @@
 // lib/copy.ts
 import nativeAddon from './native.ts';
-import type { INativeCopyProcess } from './types.ts';
+import type { CopyJobConfig, CopyJobResult, INativeCopyProcess, ProgressCallback } from './types.ts';
 
-export interface CopyJobConfig {
-    source: string;
-    target: string;
-    force?: boolean;
-    makeDir?: boolean;
-    chunkSize?: number;
-    parallelChunks?: number;
-    [key: string]: any; // TODO
-}
 
-export interface CopyJobResult {
-    size: number;
-    sourceCheckSum?: string;
-    targetCheckSum?: string;
-    realTarget?: string;
-    [key: string]: any; // TODO
-}
 
-export type ProgressCallback = (jobNum: number, processed: number, total: number) => void;
 
 export class CopyProcess {
     private nativeCp: INativeCopyProcess;

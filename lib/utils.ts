@@ -1,4 +1,4 @@
-import type { IXRootDError } from "./types.ts";
+import type { XRootDOkError } from "./types.ts";
 
 export function reverseStr(str: string) {
     let reversed = '';
@@ -9,6 +9,6 @@ export function reverseStr(str: string) {
     return reversed;
 }
 
-export function isXrdError(e: unknown): e is IXRootDError {
+export function isXrdError(e: unknown): e is XRootDOkError & { ok: false } {
     return e instanceof Error && "xrdStatus" in e && typeof e.xrdStatus === "number" && e.xrdStatus > 0;
 }
