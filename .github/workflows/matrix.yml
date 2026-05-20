@@ -47,6 +47,7 @@ jobs:
       - name: Install package
         run: |
           pnpm init
+          pnpm config set minimumReleaseAge 0
           pnpm install xrootd@latest
 
       - name: Install XRootD Server for Testing (Linux)
