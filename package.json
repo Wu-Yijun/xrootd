@@ -60,7 +60,7 @@
     "build:clean": "rm -r ./build && pnpm run build",
     "pack": "mkdir -p packages && pnpm pack --pack-destination ./packages",
     "test:prepare": "unrun ./tests/prepare/main.ts",
-    "test": "unrun tests/native.ts && unrun tests/url.ts && unrun tests/fs.ts"
+    "test": "unrun tests/native.mjs && unrun tests/url.ts && unrun tests/fs.ts"
   },
   "dependencies": {
     "node-gyp-build": "^4.8.0"
