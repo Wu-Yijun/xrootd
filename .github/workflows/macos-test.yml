@@ -210,7 +210,7 @@ jobs:
     - name: Run Tests
       run: |
         pnpm install --save-dev tsx # ensure Node20 able to run tsx
-        pnpm test:prep
+        pnpm test:prepare
         pnpm test --import tsx
 
     - name: Upload Server Logs on Failure
