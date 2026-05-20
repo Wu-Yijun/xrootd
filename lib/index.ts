@@ -3,7 +3,7 @@
 // 1. 导出核心功能类 (使用者将通过 new File() 来调用)
 export { File } from './file.ts';
 export { FileSystem } from './filesystem.ts';
-// export { CopyProcess } from './copy-process.ts';
+export { CopyProcess } from './copy.ts';
 export { XRootDUrl as URL } from './url.ts';
 export { Env } from './env.ts';
 

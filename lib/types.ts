@@ -169,10 +169,10 @@ export interface INativeFileSystem {
  * 对应 src/core/XrdNodeCopyProcess.cc 中 Init 暴露的类
  */
 export interface INativeCopyProcess {
-  AddJob(source: string, target: string): Promise<void>;
+  AddJob(config: Record<string, any>): void;
   Prepare(): Promise<void>;
-  Run(): Promise<PropertyList>;
-  CancelJob(jobNum: number): void;
+  Run(): Promise<any[]>;
+  CancelJob(): void;
   // 注入 JS 回调给 C++ 的 ThreadSafeFunction 使用
   SetEventListener(
     eventName: string,

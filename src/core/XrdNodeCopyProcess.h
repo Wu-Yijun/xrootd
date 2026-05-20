@@ -2,7 +2,8 @@
 #include <napi.h>
 
 #include <XrdCl/XrdClCopyProcess.hh>
-
+#include <vector>
+#include <atomic>
 
 class XrdNodeCopyProcess : public Napi::ObjectWrap<XrdNodeCopyProcess> {
  public:
@@ -14,6 +15,15 @@ class XrdNodeCopyProcess : public Napi::ObjectWrap<XrdNodeCopyProcess> {
 
  private:
   XrdCl::CopyProcess* cp_;
+
+  // 内存管理：持有所有任务的返回结果指针，析构时统一释放
+  std::vector<XrdCl::PropertyList*> jobResults_;
+  
+  // 安全机制：用于响应 ShouldCancel 接口
+  std::atomic<bool> isCancelled_{false};
+
+  // 事件监听：存储用户传入的 'progress' 回调
+  Napi::FunctionReference progressCallback_;
 
   Napi::Value AddJob(const Napi::CallbackInfo& info);
   Napi::Value Prepare(const Napi::CallbackInfo& info);
