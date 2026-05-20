@@ -1,0 +1,104 @@
+name: Matrix Test
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux on ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      contains(github.event.head_commit.message, '[test]')
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          # - os: ubuntu-24.04-arm
+          #   platform: linux
+          #   arch: arm64
+          # - os: macos-26-intel
+          #   platform: macos
+          #   arch: x64
+          # - os: macos-latest
+          #   platform: macos
+          #   arch: arm64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: 'tests'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install package
+        run: |
+          pnpm init
+          pnpm install xrootd@latest
+
+      - name: Install XRootD Server for Testing (Linux)
+        if: runner.platform == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y xrootd-server xrootd-client
+      - name: Install XRootD Server for Testing (macOS)
+        if: runner.platform == 'macOS'
+        run: |
+          # macOS 物理机使用 Homebrew 安装
+          brew install xrootd
+
+      - name: Start XRootD Local Server
+        run: |
+          # Starting XRootD Local Server...
+          # 检查当前是否为 root 用户 (UID=0)
+          if [ "$(id -u)" = "0" ]; then
+            echo "Detected root user (Container environment). Dropping privileges..."
+            
+            # 1. 放开当前测试目录的权限，否则降权后的用户无法读写测试文件和日志
+            chmod -R 777 .
+            
+            # 2. 切换到系统内置的非特权用户 (daemon) 来在后台启动 xrootd
+            # 注意：$(pwd) 会在当前 root 的 shell 展开，以绝对路径传递给 daemon
+            su -s /bin/sh daemon -c "nohup xrootd -p 32874 '$(pwd)' > xrootd-server.log 2>&1 &"
+          else
+            echo "Detected non-root user (macOS environment). Running directly..."
+            nohup xrootd -p 32874 "$(pwd)" > xrootd-server.log 2>&1 &
+          fi
+
+          echo "Sleeping 10 seconds...."
+          # 等待几秒钟确保端口成功绑定
+          sleep 10
+          
+          # 打印启动日志以确认状态
+          cat xrootd-server.log
+          
+      - name: Prepare Tests
+        run: |
+          node tests/pretest/main.ts
+          if [ "$(id -u)" = "0" ]; then
+            # 确保后续你的测试脚本 (root 身份) 跑完后，还有权限去清理或读取这些文件
+            chmod -R 777 tests/tmp
+            # 把测试目录的所有权移交给 daemon 用户和组
+            chown -R daemon:daemon tests/tmp
+          fi
+          
+      - name: Running Node Test
+        run: |
+          node --test test/*.ts
+
+      - name: Upload Server Logs on Failure
+        # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xrootd-server-log-${{ matrix.name }}-${{ matrix.arch }}
+          path: xrootd-server.log

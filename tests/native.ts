@@ -1,6 +1,4 @@
 // lib/native.ts
-/// <reference types="node" />
-
 import nodeGypBuild from 'node-gyp-build';
 import path from 'path';
 

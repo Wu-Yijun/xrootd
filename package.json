@@ -59,8 +59,8 @@
     "build": "pnpm run build:addon && pnpm run build:binaries && pnpm run build:tsc && pnpm run build:ts",
     "build:clean": "rm -r ./build && pnpm run build",
     "pack": "mkdir -p packages && pnpm pack --pack-destination ./packages",
-    "test:prep": "unrun ./tests/prepare.ts",
-    "test": "node --test tests/*.mjs"
+    "test:prepare": "unrun ./tests/prepare/main.ts",
+    "test": "node --test tests/*.ts"
   },
   "dependencies": {
     "node-gyp-build": "^4.8.0"

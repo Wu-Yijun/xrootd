@@ -205,14 +205,15 @@ jobs:
         
     - name: Run Tests
       run: |
-        pnpm test:prep
+        pnpm install --save-dev tsx # ensure Node20 able to run tsx
+        pnpm run test:prep
         if [ "$(id -u)" = "0" ]; then
           # 确保后续你的测试脚本 (root 身份) 跑完后，还有权限去清理或读取这些文件
           chmod -R 777 tests/tmp
           # 把测试目录的所有权移交给 daemon 用户和组
           chown -R daemon:daemon tests/tmp
         fi
-        pnpm test
+        pnpm run test --import tsx
 
     - name: Upload Server Logs on Failure
       # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { CopyProcess } from '../lib/copy.ts';
+import { CopyProcess } from 'xrootd';
 
 test('CopyProcess constructor', () => {
     const cp = new CopyProcess();

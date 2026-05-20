@@ -209,8 +209,9 @@ jobs:
         
     - name: Run Tests
       run: |
+        pnpm install --save-dev tsx # ensure Node20 able to run tsx
         pnpm test:prep
-        pnpm test
+        pnpm test --import tsx
 
     - name: Upload Server Logs on Failure
       # 仅在测试失败时上传 server 日志，方便排查是代码问题还是环境问题

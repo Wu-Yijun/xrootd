@@ -1,4 +1,4 @@
-import { File } from "../dist/index.mjs";
+import { File } from "xrootd";
 
 const f = new File();
 f.open("");
