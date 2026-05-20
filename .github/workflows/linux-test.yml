@@ -5,13 +5,11 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  # 允许在 GitHub 网页端手动触发
   workflow_dispatch:
 
 jobs:
   build-and-test:
     name: Build Linux on ${{ matrix.arch }}
-    if: contains(github.event.head_commit.message, '[linux]') || contains(github.event.head_commit.message, '[linux-')
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -22,24 +20,12 @@ jobs:
           - os: ubuntu-24.04-arm    # 显式指定 ARM64 原生运行器
             name: linux
             arch: arm64
+    if: contains(github.event.head_commit.message, '[linux]')
 
     container:
       image: node:20-bullseye
     
     steps:
-    - name: Should Run
-      id: filter
-      shell: bash
-      run: |
-        MSG="${{ github.event.head_commit.message }}"
-        # 定义一个变量来决定是否运行
-        # 如果 msg 包含 [linux] 或者 [linux-${{ matrix.arch }}] 则设为 true
-        if [[ "$MSG" == *"[linux]"* ]] || [[ "$MSG" == *"[linux-${{ matrix.arch }}]"* ]]; then
-          echo "run=true" >> $GITHUB_OUTPUT
-        else
-          echo "run=false" >> $GITHUB_OUTPUT
-        fi
-
     - name: Checkout Repository
       uses: actions/checkout@v6
 
