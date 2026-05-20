@@ -40,14 +40,14 @@ jobs:
         uses: pnpm/action-setup@v5
         with:
           version: 11
-      - name: Install package
-        run: |
-          pnpm init
-          pnpm install xrootd@latest
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 26
+      - name: Install package
+        run: |
+          pnpm init
+          pnpm install xrootd@latest
 
       - name: Install XRootD Server for Testing (Linux)
         if: runner.platform == 'Linux'
