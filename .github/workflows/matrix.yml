@@ -56,7 +56,7 @@ jobs:
           pnpm init
           pnpm config set minimumReleaseAge 0
           # pnpm install xrootd@latest
-          pnpm install ./xrootd-0.2.1.tgz
+          pnpm install ./xrootd-0.2.1.tgz --allow-build=xrootd
 
       - name: Install XRootD Server for Testing (Linux)
         if: runner.os == 'Linux'
