@@ -59,7 +59,7 @@ jobs:
           # pnpm install ./xrootd-0.2.1.tgz --allow-build=xrootd
           # DEBUG: fix path name
           cd node_modules/.pnpm/xrootd@0.2.1/node_modules/xrootd/libs
-          mv macos-${{matrix.arch}} darwin-${{matrix.arch}}
+          mv darwin-${{matrix.arch}} macos-${{matrix.arch}}
 
       - name: Install XRootD Server for Testing (Linux)
         if: runner.os == 'Linux'
