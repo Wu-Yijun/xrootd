@@ -1,9 +1,9 @@
-# 🚀 XRootD TypeScript Support (`xrootd`)
+# XRootD TypeScript Support (`xrootd`)
 
 A high-performance, enterprise-grade Node.js binding for the [XRootD](https://github.com/xrootd/xrootd) client library. Designed to bring seamless, extreme-throughput data access to the TypeScript ecosystem.
 
 > [!NOTE]
-> **Work in Progress**: This package is currently under active development. While core features are highly functional, the API may undergo minor refinements.
+> **Work in Progress**: This package is currently under active development with some features not supported yet. While core features are highly functional, the API may undergo refinements.
 
 
 ## Supported Capabilities
@@ -130,8 +130,8 @@ Unlike traditional Node.js C++ addons, `xrootd` is architected for **High Energy
 
 This project is released under a **Dual License** strategy to balance open-source compatibility and developer freedom:
 
-1. **[GNU GPLv3](https://www.google.com/search?q=https://www.gnu.org/licenses/gpl-3.0.en.html)**: The native binding codebase adheres to the GPLv3 license to remain fully compatible with the upstream C++ XRootD project.
-2. **[MIT](https://www.google.com/search?q=https://opensource.org/licenses/MIT)**: The core TypeScript APIs, interface definitions, and glue layers are provided under the MIT license, allowing you to integrate the TS components into your own software architectures without viral restrictive requirements.
+1. **[GNU GPLv3](LICENSE-GPLv3)**: The native binding codebase adheres to the GPLv3 license to remain fully compatible with the upstream C++ XRootD project.
+2. **[MIT](LICENSE-MIT)**: The core TypeScript APIs, interface definitions, and glue layers are provided under the MIT license, allowing you to integrate the TS components into your own software architectures without viral restrictive requirements.
 
 *Disclaimer: This project is a third-party community initiative built for modern web ecosystems and is not affiliated with, officially endorsed by, or sponsored by the core XRootD project.*
 
