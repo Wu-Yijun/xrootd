@@ -37,7 +37,7 @@ jobs:
           sparse-checkout-cone-mode: false
       
       - name: '[TEST] Download new build'
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v8
         with:
           run-id: 26174772416
           artifact-ids: 7115297870
