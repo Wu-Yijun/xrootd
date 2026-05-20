@@ -16,16 +16,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux
+            platform: Linux
             arch: x64
           # - os: ubuntu-24.04-arm
-          #   platform: linux
+          #   platform: Linux
           #   arch: arm64
           # - os: macos-26-intel
-          #   platform: macos
+          #   platform: macOS
           #   arch: x64
           # - os: macos-latest
-          #   platform: macos
+          #   platform: macOS
           #   arch: arm64
 
     steps:
