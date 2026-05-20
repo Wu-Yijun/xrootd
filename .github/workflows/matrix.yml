@@ -48,7 +48,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 26
-          cache: pnpm
 
       - name: Install XRootD Server for Testing (Linux)
         if: runner.platform == 'Linux'
