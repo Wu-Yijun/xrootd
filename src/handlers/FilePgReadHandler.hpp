@@ -46,10 +46,7 @@ class FilePgReadHandler : public XrdCl::ResponseHandler {
 
             // 构造 Buffer
             Napi::Buffer<char> jsBuffer = Napi::Buffer<char>::New(
-                env,
-                this->buffer_,
-                bytesRead,
-                [](Napi::Env, char* finalizeData) {
+                env, this->buffer_, bytesRead, [](Napi::Env, char* finalizeData) {
                   delete[] finalizeData;
                 }
             );

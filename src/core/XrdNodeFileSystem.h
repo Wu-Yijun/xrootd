@@ -3,7 +3,6 @@
 
 #include <XrdCl/XrdClFileSystem.hh>
 
-
 class XrdNodeFileSystem : public Napi::ObjectWrap<XrdNodeFileSystem> {
  public:
   static Napi::Object Init(Napi::Env env, Napi::Object exports);
@@ -118,7 +117,8 @@ class XrdNodeFileSystem : public Napi::ObjectWrap<XrdNodeFileSystem> {
   /**
    * @brief 获取虚拟文件系统 (VFS) 的空间利用率与配额统计信息。
    * @param path [String] 目标路径。
-   * @return Promise<Object> 包含 nodesRW/freeRW/nodesStaging/freeStaging (BigInt) 及 utilizationRW/utilizationStaging (Number)。
+   * @return Promise<Object> 包含 nodesRW/freeRW/nodesStaging/freeStaging (BigInt) 及
+   * utilizationRW/utilizationStaging (Number)。
    * @note 使用 FSStatVFSHandler，提取底层的 XrdCl::StatInfoVFS 结构。
    */
   Napi::Value StatVFS(const Napi::CallbackInfo& info);
@@ -189,7 +189,8 @@ class XrdNodeFileSystem : public Napi::ObjectWrap<XrdNodeFileSystem> {
    * @brief 设置文件或目录的扩展属性 (Extended Attributes)。
    * @param path [String] 目标路径。
    * @param obj [Object] 键值对 { [key: string]: string }。
-   * @return Promise<Array<{ name: string, isOk: boolean, code: number, message: string }>> 每一项设置的状态。
+   * @return Promise<Array<{ name: string, isOk: boolean, code: number, message: string }>>
+   * 每一项设置的状态。
    * @note 使用 FSXAttrStatusHandler，提取 std::vector<XrdCl::XAttrStatus> 并映射。
    */
   Napi::Value SetXAttr(const Napi::CallbackInfo& info);
@@ -207,7 +208,8 @@ class XrdNodeFileSystem : public Napi::ObjectWrap<XrdNodeFileSystem> {
    * @brief 删除文件或目录指定的扩展属性。
    * @param path [String] 目标路径。
    * @param keys [Array<String>] 属性键列表。
-   * @return Promise<Array<{ name: string, isOk: boolean, code: number, message: string }>> 每一项删除的状态。
+   * @return Promise<Array<{ name: string, isOk: boolean, code: number, message: string }>>
+   * 每一项删除的状态。
    * @note 使用 FSXAttrStatusHandler。
    */
   Napi::Value DelXAttr(const Napi::CallbackInfo& info);

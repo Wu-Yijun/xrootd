@@ -20,7 +20,7 @@ std::string UnifyKey(std::string key) {
   }
   return key;
 }
-}
+}  // namespace
 
 Napi::Object XrdNodeEnv::Init(Napi::Env env, Napi::Object exports) {
   // 1. 创建一个空的 JS 对象: {}

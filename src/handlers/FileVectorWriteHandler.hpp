@@ -15,10 +15,13 @@ namespace XrdNode {
  */
 class FileVectorWriteHandler : public XrdCl::ResponseHandler {
  public:
-  FileVectorWriteHandler(Napi::Env env, Napi::Promise::Deferred deferred)
-      : deferred_(deferred) {
+  FileVectorWriteHandler(Napi::Env env, Napi::Promise::Deferred deferred) : deferred_(deferred) {
     tsfn_ = Napi::ThreadSafeFunction::New(
-        env, Napi::Function::New(env, [](const Napi::CallbackInfo&) {}), "XRootD_FileVectorWrite", 0, 1
+        env,
+        Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),
+        "XRootD_FileVectorWrite",
+        0,
+        1
     );
   }
 
@@ -50,8 +53,8 @@ class FileVectorWriteHandler : public XrdCl::ResponseHandler {
   }
 
   virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
-    napi_status callStatus = tsfn_.BlockingCall(
-        [this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
+    napi_status callStatus =
+        tsfn_.BlockingCall([this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
           if (status.IsOK()) {
             this->deferred_.Resolve(env.Undefined());
           } else {
@@ -61,8 +64,7 @@ class FileVectorWriteHandler : public XrdCl::ResponseHandler {
 
           // 清理操作将在 ~FileVectorWriteHandler 中自动执行
           delete this;
-        }
-    );
+        });
 
     if (callStatus != napi_ok) {
       delete this;
@@ -73,7 +75,7 @@ class FileVectorWriteHandler : public XrdCl::ResponseHandler {
   Napi::Promise::Deferred deferred_;
   Napi::ThreadSafeFunction tsfn_;
   std::vector<Napi::ObjectReference> locked_buffers_;
-  
+
   XrdCl::ChunkList chunkList_;
   std::vector<struct iovec> iovecList_;
 };

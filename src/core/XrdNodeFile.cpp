@@ -296,7 +296,8 @@ Napi::Value XrdNodeFile::Read(const Napi::CallbackInfo& info) {
 Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (info.Length() < 2 || !info[0].IsBigInt() || !info[1].IsBuffer()) {
-    Napi::TypeError::New(env, "Write expects offset (bigint) and buffer (Buffer)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Write expects offset (bigint) and buffer (Buffer)")
+        .ThrowAsJavaScriptException();
     return env.Null();
   }
 
@@ -323,7 +324,8 @@ Napi::Value XrdNodeFile::Write(const Napi::CallbackInfo& info) {
 Napi::Value XrdNodeFile::WriteFd(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (info.Length() < 3 || !info[0].IsBigInt() || !info[1].IsNumber() || !info[2].IsNumber()) {
-    Napi::TypeError::New(env, "WriteFd expects offset (bigint), size (number), and fd (number)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "WriteFd expects offset (bigint), size (number), and fd (number)")
+        .ThrowAsJavaScriptException();
     return env.Null();
   }
 
@@ -337,7 +339,7 @@ Napi::Value XrdNodeFile::WriteFd(const Napi::CallbackInfo& info) {
 
   uint32_t size = info[1].As<Napi::Number>().Uint32Value();
   int fd = info[2].As<Napi::Number>().Int32Value();
-  
+
   XrdCl::Optional<uint64_t> fdoff;
   if (info.Length() >= 4 && !info[3].IsUndefined() && !info[3].IsNull()) {
     if (!info[3].IsBigInt()) {
@@ -347,11 +349,12 @@ Napi::Value XrdNodeFile::WriteFd(const Napi::CallbackInfo& info) {
     bool fdoff_lossless;
     fdoff = info[3].As<Napi::BigInt>().Uint64Value(&fdoff_lossless);
     if (!fdoff_lossless) {
-      Napi::TypeError::New(env, "fdoff value is out of bounds for uint64_t").ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, "fdoff value is out of bounds for uint64_t")
+          .ThrowAsJavaScriptException();
       return env.Null();
     }
   }
-  
+
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
   auto* handler = new FileControlHandler(env, deferred, "WriteFD");
   auto status = this->file_->Write(offset, size, fdoff, fd, handler);
@@ -680,11 +683,11 @@ Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
         .ThrowAsJavaScriptException();
     return env.Null();
   }
-  
+
   Napi::Object obj = info[0].As<Napi::Object>();
   Napi::Array keys = obj.GetPropertyNames();
   std::vector<XrdCl::xattr_t> attrs;
-  
+
   for (uint32_t i = 0; i < keys.Length(); i++) {
     Napi::Value key = keys.Get(i);
     Napi::Value val = obj.Get(key);
@@ -693,7 +696,9 @@ Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
           .ThrowAsJavaScriptException();
       return env.Null();
     }
-    attrs.push_back(std::make_tuple(key.As<Napi::String>().Utf8Value(), val.As<Napi::String>().Utf8Value()));
+    attrs.push_back(
+        std::make_tuple(key.As<Napi::String>().Utf8Value(), val.As<Napi::String>().Utf8Value())
+    );
   }
 
   Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
@@ -710,11 +715,10 @@ Napi::Value XrdNodeFile::SetXAttr(const Napi::CallbackInfo& info) {
 Napi::Value XrdNodeFile::GetXAttr(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (info.Length() < 1 || !info[0].IsArray()) {
-    Napi::TypeError::New(env, "GetXAttr expects an array of strings")
-        .ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "GetXAttr expects an array of strings").ThrowAsJavaScriptException();
     return env.Null();
   }
-  
+
   Napi::Array arr = info[0].As<Napi::Array>();
   std::vector<std::string> attrs;
   for (uint32_t i = 0; i < arr.Length(); i++) {

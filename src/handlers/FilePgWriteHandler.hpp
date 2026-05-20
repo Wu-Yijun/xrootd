@@ -15,7 +15,10 @@ namespace XrdNode {
  */
 class FilePgWriteHandler : public XrdCl::ResponseHandler {
  public:
-  FilePgWriteHandler(Napi::Env env, Napi::Promise::Deferred deferred, Napi::Buffer<char> jsBuffer, const std::vector<uint32_t>& cksums)
+  FilePgWriteHandler(
+      Napi::Env env, Napi::Promise::Deferred deferred, Napi::Buffer<char> jsBuffer,
+      const std::vector<uint32_t>& cksums
+  )
       : deferred_(deferred), cksums_(cksums) {
     bufferRef_ = Napi::Persistent(jsBuffer.As<Napi::Object>());
     tsfn_ = Napi::ThreadSafeFunction::New(
@@ -33,8 +36,8 @@ class FilePgWriteHandler : public XrdCl::ResponseHandler {
   std::vector<uint32_t>& GetCksums() { return cksums_; }
 
   virtual void HandleResponse(XrdCl::XRootDStatus* status, XrdCl::AnyObject* response) override {
-    napi_status callStatus = tsfn_.BlockingCall(
-        [this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
+    napi_status callStatus =
+        tsfn_.BlockingCall([this, status = *status](Napi::Env env, Napi::Function /*jsCallback*/) {
           if (status.IsOK()) {
             this->deferred_.Resolve(env.Undefined());
           } else {
@@ -42,8 +45,7 @@ class FilePgWriteHandler : public XrdCl::ResponseHandler {
             this->deferred_.Reject(err.Value());
           }
           delete this;
-        }
-    );
+        });
 
     if (callStatus != napi_ok) {
       delete this;

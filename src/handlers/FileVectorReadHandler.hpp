@@ -18,7 +18,11 @@ class FileVectorReadHandler : public XrdCl::ResponseHandler {
   FileVectorReadHandler(Napi::Env env, Napi::Promise::Deferred deferred)
       : deferred_(deferred), chunks_transferred_(false) {
     tsfn_ = Napi::ThreadSafeFunction::New(
-        env, Napi::Function::New(env, [](const Napi::CallbackInfo&) {}), "XRootD_FileVectorRead", 0, 1
+        env,
+        Napi::Function::New(env, [](const Napi::CallbackInfo&) {}),
+        "XRootD_FileVectorRead",
+        0,
+        1
     );
   }
 
@@ -63,10 +67,7 @@ class FileVectorReadHandler : public XrdCl::ResponseHandler {
               uint32_t actualLength = chunk.length;
 
               Napi::Buffer<char> jsBuf = Napi::Buffer<char>::New(
-                  env,
-                  bufPtr,
-                  actualLength,
-                  [](Napi::Env, char* finalizeData) {
+                  env, bufPtr, actualLength, [](Napi::Env, char* finalizeData) {
                     delete[] finalizeData;  // 移交 V8 GC
                   }
               );
