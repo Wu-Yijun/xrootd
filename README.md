@@ -3,8 +3,8 @@
 > [!WARNING]
 > **Working in process**. This package is currently under active development and not ready for production use. Stay tuned!
 
-- now complete: FileSystem/Url/Env
-- in progress: File/CopyProcess/ErrorProcess/And others
+- now complete: FileSystem/Url/Env/File
+- in progress: CopyProcess/ErrorProcess/And others
 
 ---
 

@@ -134,7 +134,7 @@ export interface XRootDEnvConfig {
   /**
    * Copy 任务失败后的重试策略。默认值: "force"
    */
-  CpRetryPolicy?: String;
+  CpRetryPolicy?: 'force' | 'continue';
 
   /**
    * Copy 操作的目标类型。默认值: ""
@@ -195,12 +195,12 @@ export interface XRootDEnvConfig {
   /**
    * 首选的 Poller 轮询器实现。默认值: "built-in"
    */
-  PollerPreference?: String;
+  PollerPreference?: 'built-in' | (string & {});
 
   /**
    * 使用的网络协议栈 (如 "IPAuto", "IPv4", "IPv6")。默认值: "IPAuto"
    */
-  NetworkStack?: String;
+  NetworkStack?: 'IPAuto' | 'IPv4' | 'IPv6' | 'IPv4Mapped6' | 'IPAll';
 
   // === 错误恢复策略 (Recovery Settings) ===
 
@@ -246,7 +246,7 @@ export interface XRootDEnvConfig {
   /**
    * 强制使用的安全协议，例如 "unix" 或 "krb5,unix"（底层通过系统环境变量设置）。
    */
-  SecProtocol?: String; // TODO: List All options
+  SecProtocol?: 'unix' | 'sss' | 'krb5' | 'pwd' | 'gsi' | 'host' | 'ztn' | (string & {});
 
   /**
    * 未授权 (Permission Denied) 时，触发自动刷新证书并重试的次数上限。默认值: 3
@@ -276,7 +276,7 @@ export interface XRootDEnvConfig {
   /**
    * TLS 调试级别（如 "OFF", "INFO", "DEBUG"）。默认值: "OFF"
    */
-  TlsDbgLvl?: String;
+  TlsDbgLvl?: 'OFF' | 'CTX' | 'SOK' | 'SIO' | 'ALL' | 'OUT' | 'INFO' | 'DEBUG' | (string & {});
 
   /**
    * 是否启用多协议通道支持。默认值: 0
