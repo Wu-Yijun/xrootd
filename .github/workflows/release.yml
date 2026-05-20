@@ -10,6 +10,8 @@ on:
 
 env:
   XROOTD_VERSION: "v6.0.2"
+  XROOTD_FULL_VERSION: "6.0.2"
+  XROOTD_MAJOR_VERSION: "6"
   CACHE_BATCH: "b3" # 更新这个值可以强制全局立即使缓存失效
   NODE_VERSION: "20"
 
@@ -61,10 +63,10 @@ jobs:
           mkdir xrootd-src/build && cd xrootd-src/build/
           cmake .. \
             -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
-            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
+            -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF -DOPENSSL_USE_STATIC_LIBS=TRUE \
             -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
-            -DOPENSSL_USE_STATIC_LIBS=TRUE
+            
           cmake --build . --parallel $(nproc)
           cmake --install .
           cd ../.. && rm -rf xrootd-src
@@ -76,23 +78,25 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           TARGET_DIR="libs/${{ matrix.platform }}-${{ matrix.arch }}"
+          VER="${{ env.XROOTD_FULL_VERSION }}"
+          MV="${{ env.XROOTD_MAJOR_VERSION }}"
           mkdir -p "$TARGET_DIR"
           
           # 1. 核心库 (强依赖，缺失即报错)
-          cp deps/xrootd/lib/libXrdCl.so.6.0.1     "$TARGET_DIR/libXrdCl.so.6"
-          cp deps/xrootd/lib/libXrdUtils.so.6.0.1  "$TARGET_DIR/libXrdUtils.so.6"
-          cp deps/xrootd/lib/libXrdXml.so.6.0.1    "$TARGET_DIR/libXrdXml.so.6"
-          cp deps/xrootd/lib/libXrdCrypto.so.6.0.1 "$TARGET_DIR/libXrdCrypto.so.6"
+          cp "deps/xrootd/lib/libXrdCl.so.$VER"     "$TARGET_DIR/libXrdCl.so.$MV"
+          cp "deps/xrootd/lib/libXrdUtils.so.$VER"  "$TARGET_DIR/libXrdUtils.so.$MV"
+          cp "deps/xrootd/lib/libXrdXml.so.$VER"    "$TARGET_DIR/libXrdXml.so.$MV"
+          cp "deps/xrootd/lib/libXrdCrypto.so.$VER" "$TARGET_DIR/libXrdCrypto.so.$MV"
           
           # 2. 安全与认证插件 (强制要求双端对齐，缺失即报错)
-          cp deps/xrootd/lib/libXrdSec-6.so        "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecProt-6.so    "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdCryptossl-6.so  "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSeckrb5-6.so    "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecunix-6.so    "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecsss-6.so     "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecpwd-6.so     "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecztn-6.so     "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSec-$MV.so"        "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecProt-$MV.so"    "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdCryptossl-$MV.so"  "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSeckrb5-$MV.so"    "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecunix-$MV.so"    "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecsss-$MV.so"     "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecpwd-$MV.so"     "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecztn-$MV.so"     "$TARGET_DIR/"
 
           # 安全地批量 strip 和 patchelf
           for f in "$TARGET_DIR"/*; do
@@ -192,23 +196,25 @@ jobs:
       - name: Copy & Patch dynamic libs (macOS)
         run: |
           TARGET_DIR="libs/${{ matrix.platform }}-${{ matrix.arch }}"
+          VER="${{ env.XROOTD_FULL_VERSION }}"
+          MV="${{ env.XROOTD_MAJOR_VERSION }}"
           mkdir -p "$TARGET_DIR"
           
           # 1. 核心库 (强依赖，去版本号拷贝)
-          cp deps/xrootd/lib/libXrdCl.6.0.1.dylib      "$TARGET_DIR/libXrdCl.6.dylib"
-          cp deps/xrootd/lib/libXrdUtils.6.0.1.dylib   "$TARGET_DIR/libXrdUtils.6.dylib"
-          cp deps/xrootd/lib/libXrdXml.6.0.1.dylib     "$TARGET_DIR/libXrdXml.6.dylib"
-          cp deps/xrootd/lib/libXrdCrypto.6.0.1.dylib  "$TARGET_DIR/libXrdCrypto.6.dylib"
+          cp "deps/xrootd/lib/libXrdCl.$VER.dylib"      "$TARGET_DIR/libXrdCl.$MV.dylib"
+          cp "deps/xrootd/lib/libXrdUtils.$VER.dylib"   "$TARGET_DIR/libXrdUtils.$MV.dylib"
+          cp "deps/xrootd/lib/libXrdXml.$VER.dylib"     "$TARGET_DIR/libXrdXml.$MV.dylib"
+          cp "deps/xrootd/lib/libXrdCrypto.$VER.dylib"  "$TARGET_DIR/libXrdCrypto.$MV.dylib"
           
           # 2. 安全与认证插件 (强制要求双端对齐，缺失即报错)
-          cp deps/xrootd/lib/libXrdSec-6.so            "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecProt-6.so        "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdCryptossl-6.so      "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSeckrb5-6.so        "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecunix-6.so        "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecsss-6.so         "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecpwd-6.so         "$TARGET_DIR/"
-          cp deps/xrootd/lib/libXrdSecztn-6.so         "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSec-$MV.so"            "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecProt-$MV.so"        "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdCryptossl-$MV.so"      "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSeckrb5-$MV.so"        "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecunix-$MV.so"        "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecsss-$MV.so"         "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecpwd-$MV.so"         "$TARGET_DIR/"
+          cp "deps/xrootd/lib/libXrdSecztn-$MV.so"         "$TARGET_DIR/"
 
           # 修正库的独立身份和相互引用路径
           for f in "$TARGET_DIR"/*; do
