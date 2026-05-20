@@ -1,6 +1,6 @@
 {
   "name": "xrootd",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Prebuilt Node.js Native Addon for XRootD, allowing JS access to EOS file systems",
   "type": "module",
   "exports": {

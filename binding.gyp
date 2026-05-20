@@ -40,8 +40,8 @@
             "-lXrdUtils",
             
             # Mac 运行期寻址：使用 @loader_path 寻址到分发依赖包目录
-            # 注意：此处文件夹名称设为 macos- 与 CI 矩阵逻辑保持严格一致
-            "-Wl,-rpath,'@loader_path/../../libs/macos-<(target_arch)'"
+            # 注意：此处文件夹名称设为 darwin- 与 CI 矩阵逻辑保持严格一致
+            "-Wl,-rpath,'@loader_path/../../libs/darwin-<(target_arch)'"
           ],
           "xcode_settings": {
             # 确保 Xcode 编译器使用 C++17 标准

@@ -15,12 +15,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   platform: linux
-          #   arch: x64
-          # - os: ubuntu-24.04-arm
-          #   platform: linux
-          #   arch: arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
           - os: macos-26-intel
             platform: darwin
             arch: x64
@@ -58,8 +58,8 @@ jobs:
           pnpm install xrootd@latest
           # pnpm install ./xrootd-0.2.1.tgz --allow-build=xrootd
           # DEBUG: fix path name
-          cd node_modules/.pnpm/xrootd@0.2.1/node_modules/xrootd/libs
-          mv darwin-${{matrix.arch}} macos-${{matrix.arch}}
+          # cd node_modules/.pnpm/xrootd@0.2.1/node_modules/xrootd/libs
+          # mv darwin-${{matrix.arch}} macos-${{matrix.arch}}
 
       - name: Install XRootD Server for Testing (Linux)
         if: runner.os == 'Linux'

@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  XROOTD_VERSION: "v6.0.1"
-  CACHE_BATCH: "b2" # 更新这个值可以强制全局立即使缓存失效
+  XROOTD_VERSION: "v6.0.2"
+  CACHE_BATCH: "b3" # 更新这个值可以强制全局立即使缓存失效
   NODE_VERSION: "20"
 
 jobs:
@@ -63,7 +63,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/deps/xrootd \
             -DXRDCL_ONLY=ON -DENABLE_SERVER=OFF -DENABLE_PYTHON=OFF \
             -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DOPENSSL_USE_STATIC_LIBS=TRUE
           cmake --build . --parallel $(nproc)
           cmake --install .
           cd ../.. && rm -rf xrootd-src

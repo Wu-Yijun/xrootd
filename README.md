@@ -1,9 +1,11 @@
-# XRootD TypeScript Support (`xrootd`)
+# XRootD TypeScript Support
 
 A high-performance, enterprise-grade Node.js binding for the [XRootD](https://github.com/xrootd/xrootd) client library. Designed to bring seamless, extreme-throughput data access to the TypeScript ecosystem.
 
+Github Repo: [**Wu-Yijun/xrootd**](https://github.com/Wu-Yijun/xrootd); NPM package: [**XRootD**](https://www.npmjs.com/package/xrootd)
+
 > [!NOTE]
-> **Work in Progress**: This package is currently under active development with some features not supported yet. While core features are highly functional, the API may undergo refinements.
+> **Work in Progress**: This package is currently under active development with some features not supported yet. While core features are highly functional, the API may undergo refinements. Api interfaces are not tests thoroughly so it may be unstable.
 
 
 ## Supported Capabilities
