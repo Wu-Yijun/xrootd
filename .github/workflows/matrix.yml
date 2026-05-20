@@ -32,7 +32,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
         with:
-          sparse-checkout: 'tests'
+          sparse-checkout: |
+            tests
+          sparse-checkout-cone-mode: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
