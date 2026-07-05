@@ -5,8 +5,12 @@ A high-performance, enterprise-grade Node.js binding for the [XRootD](https://gi
 Github Repo: [**Wu-Yijun/xrootd**](https://github.com/Wu-Yijun/xrootd); NPM package: [**XRootD**](https://www.npmjs.com/package/xrootd)
 
 > [!NOTE]
-> **Work in Progress**: This package is currently under active development with some features not supported yet. While core features are highly functional, the API may undergo refinements. Api interfaces are not tests thoroughly so it may be unstable.
-
+> 🚀 Exciting News: A pure Node.js implementation is coming!
+> We are rewriting xrootd in pure native Node.js to eliminate C++ compilation (node-gyp) issues. You can try the beta version now:
+> ```bash
+> npm install xrootd@next
+> ```
+> Feedback is highly appreciated!
 
 ## Supported Capabilities
 
